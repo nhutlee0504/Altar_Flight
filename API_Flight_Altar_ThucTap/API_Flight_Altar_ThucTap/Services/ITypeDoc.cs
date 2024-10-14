@@ -1,11 +1,14 @@
-﻿using API_Flight_Altar_ThucTap.Model;
+﻿using API_Flight_Altar_ThucTap.Dto;
+using API_Flight_Altar_ThucTap.Model;
 
 namespace API_Flight_Altar_ThucTap.Services
 {
     public interface ITypeDoc
     {
         public Task<IEnumerable<TypeDoc>> GetTypeDocs();
-        public Task<TypeDoc> AddTypeDoc(TypeDocDto typeDocDto);
-        public Task<TypeDoc> UpdateTypeDoc(int id, TypeDocDto typeDocDto);
+        public Task<TypeDoc> AddTypeDoc(string typeName, string note);
+        public Task<TypeDoc> UpdateTypeDoc(int id, string typeName, string note);
+        public Task<TypeDoc> FindTypeDocByName(string name);
+        public Task<TypeDoc> DeleteTypeDoc(int id);
     }
 }

@@ -1,5 +1,7 @@
 ﻿using API_Flight_Altar.Data;
+using API_Flight_Altar_ThucTap.Dto;
 using API_Flight_Altar_ThucTap.Model;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -15,53 +17,124 @@ namespace API_Flight_Altar_ThucTap.Services
             _context = context;
             _httpContextAccessor = httpContextAccessor;
         }
-        public async Task<TypeDoc> AddTypeDoc(TypeDocDto typeDocDto)
+        public async Task<TypeDoc> AddTypeDoc(string typeName, string note)//Tạo loại tài liệu
         {
-            // Lấy IdUser từ claims
-            var userId = GetUserIdFromClaims();
+            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
 
-            var typeDoc = new TypeDoc
+            if (userInfo.Role == "Admin" || userInfo.Role == "GO")
             {
-                TypeName = typeDocDto.TypeDocName,
-                CreatedDate = DateTime.UtcNow,
-                UserId = userId
-            };
+                var typeDoc = new TypeDoc
+                {
+                    TypeName = typeName,
+                    Note = note,
+                    CreatedDate = DateTime.UtcNow,
+                    UserId = userInfo.IdUser,
+                    Status = "Active",
+                };
 
-            await _context.typeDocs.AddAsync(typeDoc);
-            await _context.SaveChangesAsync();
+                await _context.typeDocs.AddAsync(typeDoc);
+                await _context.SaveChangesAsync();
 
-            return typeDoc;
+                return typeDoc;
+            }
+            throw new UnauthorizedAccessException("Bạn không có quyền tạo loại tài liệu");
+
+
         }
 
-        public async Task<IEnumerable<TypeDoc>> GetTypeDocs()
+        public async Task<TypeDoc> DeleteTypeDoc(int id)//Xóa tài liệu
         {
-            return await _context.typeDocs.ToListAsync();
-        }
+            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
 
-        public async Task<TypeDoc> UpdateTypeDoc(int id, TypeDocDto typeDocDto)
-        {
-            var typeFind = await _context.typeDocs.FindAsync(id);
-            if(typeFind != null)
+            if (userInfo.Role == "Admin" || userInfo.Role == "GO")
             {
-                typeFind.TypeName = typeDocDto.TypeDocName;
+                var typeFind = await _context.typeDocs.FindAsync(id);
+                if (typeFind == null)
+                {
+                    throw new NotImplementedException("Không tìm thấy loại tài liệu");
+                }
+                if (typeFind.UserId != userInfo.IdUser)
+                {
+                    throw new UnauthorizedAccessException("Bạn không có quyền chỉnh sửa loại tài liệu này.");
+                }
+                typeFind.Status = "Delete";
                 await _context.SaveChangesAsync();
                 return typeFind;
             }
-            throw new NotImplementedException("Không tìm thấy loại tài liệu");
+            throw new UnauthorizedAccessException("Bạn không có quyền xóa tài liệu");
+          
         }
 
-        private int GetUserIdFromClaims()
+        public async Task<TypeDoc> FindTypeDocByName(string name)//Tìm loại tài liệu qua tên
+        {
+            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+
+            if (userInfo.Role == "Admin" || userInfo.Role == "GO")
+            {
+                var typeFind = await _context.typeDocs.FirstOrDefaultAsync(x => x.TypeName == name);
+                if (typeFind != null)
+                {
+                    return typeFind;
+                }
+                throw new NotImplementedException("Không tìm thấy loại tài liệu");
+            }
+            throw new UnauthorizedAccessException("Bạn không có quyền thực hiện chức năng.");
+
+        }
+
+        public async Task<IEnumerable<TypeDoc>> GetTypeDocs()//Lấy tất cả loại tài liệu
+        {
+            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+
+            if (userInfo.Role == "Admin" || userInfo.Role == "GO")
+            {
+                return await _context.typeDocs.ToListAsync();
+            }
+            throw new UnauthorizedAccessException("Bạn không có quyền thực hiện chức năng.");
+
+        }
+
+        public async Task<TypeDoc> UpdateTypeDoc(int id, string typeName, string note)//Cập nhật loại tài liệu
+        {
+            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+
+            if (userInfo.Role != "Admin" || userInfo.Role != "GO")
+            {
+                var typeFind = await _context.typeDocs.FirstOrDefaultAsync(x => x.IdTypeDoc == id);
+                if (typeFind == null)
+                {
+                    throw new NotImplementedException("Không tìm thấy loại tài liệu");
+                }
+                if (typeFind.UserId != userInfo.IdUser)
+                {
+                    throw new UnauthorizedAccessException("Bạn không có quyền chỉnh sửa loại tài liệu này.");
+                }
+                typeFind.TypeName = typeName;
+                typeFind.Note = note;
+                await _context.SaveChangesAsync();
+                return typeFind;
+            }
+            throw new UnauthorizedAccessException("Bạn không có quyền thực hiện chức năng.");
+
+        }
+
+        //Phương thức ngoài
+
+        private (int IdUser, string Email, string Role) GetUserInfoFromClaims()
         {
             var userClaim = _httpContextAccessor.HttpContext?.User;
             if (userClaim != null && userClaim.Identity.IsAuthenticated)
             {
-                var userIdClaim = userClaim.FindFirst(ClaimTypes.NameIdentifier); // Lấy IdUser từ claim
-                if (userIdClaim != null)
+                var idClaim = userClaim.FindFirst(ClaimTypes.NameIdentifier);
+                var emailClaim = userClaim.FindFirst(ClaimTypes.Email);
+                var roleClaim = userClaim.FindFirst(ClaimTypes.Role);
+
+                if (idClaim != null && emailClaim != null && roleClaim != null)
                 {
-                    return int.Parse(userIdClaim.Value);
+                    return (int.Parse(idClaim.Value), emailClaim.Value, roleClaim.Value);
                 }
             }
-            throw new UnauthorizedAccessException("Không tìm thấy thông tin người dùng.");
+            throw new UnauthorizedAccessException("Vui lòng đăng nhập vào hệ thống.");
         }
     }
 }

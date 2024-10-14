@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API_Flight_Altar_ThucTap.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241002175032_Dbc0")]
-    partial class Dbc0
+    [Migration("20241006174400_Dbv0")]
+    partial class Dbv0
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -23,6 +23,58 @@ namespace API_Flight_Altar_ThucTap.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
+
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.Group_User", b =>
+                {
+                    b.Property<int>("IdGU")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdGU"), 1L, 1);
+
+                    b.Property<int>("GroupID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("IdGU");
+
+                    b.HasIndex("GroupID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("group_Users");
+                });
+
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.GroupModel", b =>
+                {
+                    b.Property<int>("IdGroup")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdGroup"), 1L, 1);
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GroupName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("IdGroup");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("groups");
+                });
 
             modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.TypeDoc", b =>
                 {
@@ -34,6 +86,10 @@ namespace API_Flight_Altar_ThucTap.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TypeName")
                         .IsRequired()
@@ -82,6 +138,36 @@ namespace API_Flight_Altar_ThucTap.Migrations
                     b.ToTable("users");
                 });
 
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.Group_User", b =>
+                {
+                    b.HasOne("API_Flight_Altar_ThucTap.Model.GroupModel", "Group")
+                        .WithMany("group_Users")
+                        .HasForeignKey("GroupID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("API_Flight_Altar.Model.User", "User")
+                        .WithMany("group_Users")
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.GroupModel", b =>
+                {
+                    b.HasOne("API_Flight_Altar.Model.User", "User")
+                        .WithMany("groups")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.TypeDoc", b =>
                 {
                     b.HasOne("API_Flight_Altar.Model.User", "User")
@@ -93,8 +179,17 @@ namespace API_Flight_Altar_ThucTap.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.GroupModel", b =>
+                {
+                    b.Navigation("group_Users");
+                });
+
             modelBuilder.Entity("API_Flight_Altar.Model.User", b =>
                 {
+                    b.Navigation("group_Users");
+
+                    b.Navigation("groups");
+
                     b.Navigation("typeDocs");
                 });
 #pragma warning restore 612, 618

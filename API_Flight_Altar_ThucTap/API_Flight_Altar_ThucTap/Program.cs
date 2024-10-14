@@ -14,6 +14,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+    //.AddJsonOptions(options =>
+    //{
+    //    Thiết lập ReferenceHandler để hỗ trợ các chu kỳ tham chiếu
+    //    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+
+    //    Giảm độ sâu tối đa
+    //    options.JsonSerializerOptions.MaxDepth = 16; // Bạn có thể thay đổi số này tùy theo yêu cầu
+    //});
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -63,6 +71,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserSevice, UserService>();
 builder.Services.AddScoped<ITypeDoc, TypeDocService>();
 builder.Services.AddScoped<IGroup, GroupService>();
+builder.Services.AddScoped<IGroupUser, GroupUserService>();
+builder.Services.AddScoped<IPermission, PermissionService>();
+builder.Services.AddScoped<IGroupType, GroupTypeService>();
 
 builder.Services.AddCors(options =>
 {
@@ -84,16 +95,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.Use(async (context, next) =>
-{
-    await next.Invoke();
-
-    if (context.Response.StatusCode == StatusCodes.Status401Unauthorized)
-    {
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(new JsonResult(new { message = "Bạn cần đăng nhập để thực hiện hành động này." }).ToString());
-    }
-});
 app.UseHttpsRedirection(); // Thêm nếu bạn muốn sử dụng HTTPS
 app.UseAuthentication(); // Đảm bảo dùng trước app.UseAuthorization()
 app.UseAuthorization();

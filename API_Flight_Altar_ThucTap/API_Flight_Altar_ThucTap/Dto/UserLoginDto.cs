@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace API_Flight_Altar.Model
+namespace API_Flight_Altar_ThucTap.Dto
 {
     public class UserLoginDto
     {

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API_Flight_Altar_ThucTap.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241003022403_Dbv1")]
+    [Migration("20241007100036_Dbv1")]
     partial class Dbv1
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,7 +24,30 @@ namespace API_Flight_Altar_ThucTap.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
-            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.GroupModek", b =>
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.Group_User", b =>
+                {
+                    b.Property<int>("IdGU")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdGU"), 1L, 1);
+
+                    b.Property<int>("GroupID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("IdGU");
+
+                    b.HasIndex("GroupID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("group_Users");
+                });
+
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.GroupModel", b =>
                 {
                     b.Property<int>("IdGroup")
                         .ValueGeneratedOnAdd()
@@ -53,6 +76,23 @@ namespace API_Flight_Altar_ThucTap.Migrations
                     b.ToTable("groups");
                 });
 
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.Permission", b =>
+                {
+                    b.Property<int>("idPermission")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("idPermission"), 1L, 1);
+
+                    b.Property<string>("PermissionName")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("idPermission");
+
+                    b.ToTable("permissions");
+                });
+
             modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.TypeDoc", b =>
                 {
                     b.Property<int>("IdTypeDoc")
@@ -63,6 +103,10 @@ namespace API_Flight_Altar_ThucTap.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TypeName")
                         .IsRequired()
@@ -111,7 +155,26 @@ namespace API_Flight_Altar_ThucTap.Migrations
                     b.ToTable("users");
                 });
 
-            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.GroupModek", b =>
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.Group_User", b =>
+                {
+                    b.HasOne("API_Flight_Altar_ThucTap.Model.GroupModel", "Group")
+                        .WithMany("group_Users")
+                        .HasForeignKey("GroupID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("API_Flight_Altar.Model.User", "User")
+                        .WithMany("group_Users")
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.GroupModel", b =>
                 {
                     b.HasOne("API_Flight_Altar.Model.User", "User")
                         .WithMany("groups")
@@ -133,8 +196,15 @@ namespace API_Flight_Altar_ThucTap.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.GroupModel", b =>
+                {
+                    b.Navigation("group_Users");
+                });
+
             modelBuilder.Entity("API_Flight_Altar.Model.User", b =>
                 {
+                    b.Navigation("group_Users");
+
                     b.Navigation("groups");
 
                     b.Navigation("typeDocs");
