@@ -8,6 +8,10 @@ namespace API_Flight_Altar_ThucTap.Services
 		public Task<IEnumerable<DocFlight>> GetAllDocFlight();
 		public Task<IEnumerable<DocFlight>> GetDocFlightByIdFlight(int idFlight);
 		public Task<DocFlight> AddDocFlight(IFormFile formFile, int Flightid, int Typeid);
-        public Task<DocFlightDto> DownloadDocFlight(int idDocument); // Thêm phương thức tải file
+		public Task<DocFlight> UpdateDocFlight(int idDocFlight, IFormFile formFile);
+        public Task<DocFlightDto> DownloadDocFlight(int idDocument);
+        public Task<IEnumerable<DocFlight>> SearchDocFlight(string searchTerm);
+		public Task<DocFlight> RemoveFlight(int idFlight);
+        public Task<DocFlight> ConfirmDocFlight(int idDocument);
     }
 }

@@ -3,6 +3,7 @@ using API_Flight_Altar_ThucTap.Dto;
 using API_Flight_Altar_ThucTap.Model;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Xml.Linq;
 
 namespace API_Flight_Altar_ThucTap.Services
 {
@@ -81,6 +82,22 @@ namespace API_Flight_Altar_ThucTap.Services
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
                 var groupFind = await _context.groups.Where(x => x.GroupName.Contains(name)).ToListAsync();
+                if (groupFind == null)
+                {
+                    throw new NotImplementedException("No group found");
+                }
+                return groupFind;
+            }
+            throw new UnauthorizedAccessException("You do not have access permission");
+        }
+
+        public async Task<GroupModel> FindMyGroupById(int idGroup)
+        {
+            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
+            {
+                var groupFind = await _context.groups.FirstOrDefaultAsync(x => x.IdGroup == idGroup);
                 if (groupFind == null)
                 {
                     throw new NotImplementedException("No group found");

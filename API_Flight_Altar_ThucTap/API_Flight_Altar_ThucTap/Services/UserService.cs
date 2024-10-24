@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
+using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -47,9 +48,9 @@ namespace API_Flight_Altar.Services
                 return users.Where(x => x.Status.Contains("Active") && x.Role != "Admin");
             }
             throw new UnauthorizedAccessException("You do not have access permission");
-		}
+        }
 
-		public async Task<string> LoginAdmin(UserLoginDto userLoginDto)//Đăng nhập dành cho admin
+        public async Task<string> LoginAdmin(UserLoginDto userLoginDto)//Đăng nhập dành cho admin
         {
             ValidateEmailDomain(userLoginDto.Email); // Kiểm tra email
             var user = await _context.users.FirstOrDefaultAsync(u => u.Email == userLoginDto.Email);
@@ -89,7 +90,7 @@ namespace API_Flight_Altar.Services
 
         public async Task<User> RegisterAdminAsync(UserRegisterDto userRegisterDto)//tạo tài khoản admin
         {
-         
+
             ValidateEmailDomain(userRegisterDto.Email);
             ValidatePassword(userRegisterDto.Password);
             var userTim = await _context.users.FirstOrDefaultAsync(u => u.Email == userRegisterDto.Email);
@@ -190,21 +191,20 @@ namespace API_Flight_Altar.Services
             var userInfo = GetUserInfoFromClaims();
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
+                var userFind = await _context.users.Where(x => x.Email.Contains(email)).ToListAsync();
                 if (userInfo.Role.ToLower().Contains("admin"))
                 {
-                    var userFind = await _context.users.Where(x => x.Email.Contains(email)).ToListAsync();
                     if (userFind == null)
                     {
                         throw new NotImplementedException("No user found");
                     }
                     return userFind;
                 }
-                var userFind2 = await _context.users.Where(x => x.Email.Contains(email) && x.Status.Contains("Active")).ToListAsync();
-                if (userFind2 == null)
+                if (userFind == null)
                 {
                     throw new NotImplementedException("No user found");
                 }
-                return userFind2;
+                return userFind.Where(x => x.Status.Contains("Active"));
             }
             throw new UnauthorizedAccessException("You do not have access permission");
         }
@@ -246,6 +246,119 @@ namespace API_Flight_Altar.Services
             }
 
             throw new NotImplementedException("User not found.");
+        }
+
+        public async Task<User> LockUser(int id)
+        {
+            var user = GetUserInfoFromClaims();
+            // Kiểm tra vai trò
+            if (!user.Role.ToLower().Contains("admin"))
+            {
+                throw new UnauthorizedAccessException("Only admin has permission");
+            }
+            var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == id);
+            if (userFind != null)
+            {
+                if (userFind.Status.ToLower().Contains("lock"))
+                {
+                    throw new InvalidCastException("The account has already been locked");
+                }
+                if (userFind.Role.ToLower().Contains("admin"))
+                {
+                    throw new UnauthorizedAccessException("Cannot lock an admin account");
+                }
+                userFind.Status = "Lock";
+                await _context.SaveChangesAsync();
+                return userFind;
+            }
+            throw new NotImplementedException("No user found");
+        }
+
+        public async Task<User> UnlockUser(int id)
+        {
+            var user = GetUserInfoFromClaims();
+            // Kiểm tra vai trò
+            if (!user.Role.ToLower().Contains("admin"))
+            {
+                throw new UnauthorizedAccessException("Only admin has permission");
+            }
+            var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == id);
+            if (userFind != null)
+            {
+                if (userFind.Status.ToLower().Contains("active"))
+                {
+                    throw new InvalidCastException("The account is not locked");
+                }
+                userFind.Status = "Active";
+                await _context.SaveChangesAsync();
+                return userFind;
+            }
+            throw new NotImplementedException("No user found");
+        }
+
+        public async Task<User> GetMyInfo()
+        {
+            var userInfo = GetUserInfoFromClaims();
+            var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == userInfo.IdUser);
+            return userFind;
+        }
+
+        public async Task<User> FindUserById(int idUser)
+        {
+            var userInfo = GetUserInfoFromClaims();
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
+            {
+                var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == idUser);
+                if (userFind == null)
+                {
+                    throw new NotImplementedException("No user found");
+                }
+                return userFind;
+            }
+            throw new UnauthorizedAccessException("You do not have access permission");
+        }
+
+        public async Task<User> ChangePassword(string oldPassword, string newPassword)
+        {
+            var userInfo = GetUserInfoFromClaims();
+            var user = await _context.users.FirstOrDefaultAsync(u => u.IdUser == userInfo.IdUser);
+
+            if (user == null)
+            {
+                throw new NotImplementedException("User not found.");
+            }
+
+            if (!VerifyPassword(oldPassword, user.Password))
+            {
+                throw new UnauthorizedAccessException("Old password is incorrect.");
+            }
+            ValidatePassword(newPassword);
+            user.Password = HashPassword(newPassword);
+            await _context.SaveChangesAsync();
+
+            return user;
+        }
+
+        public async Task<User> ChangePasswordUser(int idUser, string newPassword)
+        {
+            var userInfo = GetUserInfoFromClaims();
+
+            if (!userInfo.Role.ToLower().Contains("admin"))
+            {
+                throw new UnauthorizedAccessException("Only admin has permission to change other users' passwords.");
+            }
+
+            var user = await _context.users.FirstOrDefaultAsync(u => u.IdUser == idUser);
+
+            if (user == null)
+            {
+                throw new NotImplementedException("User not found.");
+            }
+            ValidatePassword(newPassword);
+            user.Password = HashPassword(newPassword);
+            await _context.SaveChangesAsync();
+
+            return user;
         }
 
         //Các phương thức ngoài
@@ -349,59 +462,7 @@ namespace API_Flight_Altar.Services
 
             throw new UnauthorizedAccessException("Please log in to the system");
         }
-        public async Task<User> LockUser(int id)
-        {
-            var user = GetUserInfoFromClaims();
-            // Kiểm tra vai trò
-            if (!user.Role.ToLower().Contains("admin"))
-            {
-                throw new UnauthorizedAccessException("Only admin has permission");
-            }
-            var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == id);
-            if(userFind != null)
-            {
-                if (userFind.Status.ToLower().Contains("lock"))
-                {
-                    throw new InvalidCastException("The account has already been locked");
-                }
-                if(userFind.Role.ToLower().Contains("admin"))
-                {
-                    throw new UnauthorizedAccessException("Cannot lock an admin account");
-                }
-                userFind.Status = "Lock";
-                await _context.SaveChangesAsync();
-                return userFind;
-            }
-            throw new NotImplementedException("No user found");
-        }
 
-        public async Task<User> UnlockUser(int id)
-        {
-            var user = GetUserInfoFromClaims();
-            // Kiểm tra vai trò
-            if (!user.Role.ToLower().Contains("admin"))
-            {
-                throw new UnauthorizedAccessException("Only admin has permission");
-            }
-            var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == id);
-            if (userFind != null)
-            {
-                if (userFind.Status.ToLower().Contains("active"))
-                {
-                    throw new InvalidCastException("The account is not locked");
-                }
-                userFind.Status = "Active";
-                await _context.SaveChangesAsync();
-                return userFind;
-            }
-            throw new NotImplementedException("No user found");
-        }
 
-        public async Task<User> GetMyInfo()
-        {
-            var userInfo = GetUserInfoFromClaims();
-            var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == userInfo.IdUser);
-            return userFind;
-        }
     }
 }

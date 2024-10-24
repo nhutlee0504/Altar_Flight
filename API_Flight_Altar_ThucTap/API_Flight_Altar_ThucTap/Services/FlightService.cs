@@ -21,9 +21,8 @@ namespace API_Flight_Altar_ThucTap.Services
         public async Task<Flight> AddFlight(FlightInfo flightInfo)
         {
             var userInfo = GetUserInfoFromClaims();
-            if (userInfo.Role == "Admin" || userInfo.Role == "GO")
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
-                // Chuyển đổi thời gian từ chuỗi sang TimeOnly
                 TimeOnly timeStart;
                 TimeOnly timeEnd;
 
@@ -43,8 +42,8 @@ namespace API_Flight_Altar_ThucTap.Services
                     DateTime = flightInfo.DateTime,
                     PointOfLoading = flightInfo.PointOfLoading,
                     PointOfUnloading = flightInfo.PointOfUnloading,
-                    TimeStart = timeStart.ToString(), // Chuyển đổi TimeOnly sang string
-                    TimeEnd = timeEnd.ToString(),     // Chuyển đổi TimeOnly sang string
+                    TimeStart = timeStart.ToString(),
+                    TimeEnd = timeEnd.ToString(),
                     Status = "Created",
                     UserId = userInfo.IdUser,
                     IsDelete = false,
@@ -52,11 +51,10 @@ namespace API_Flight_Altar_ThucTap.Services
 
                 await _context.flights.AddAsync(newFlight);
                 await _context.SaveChangesAsync();
-                return newFlight; // Trả về đối tượng mới được thêm
+                return newFlight;
             }
             throw new UnauthorizedAccessException("Bạn không có quyền thực hiện chức năng");
         }
-
 
         public async Task<IEnumerable<Flight>> GetAllFlight()
         {
@@ -156,7 +154,6 @@ namespace API_Flight_Altar_ThucTap.Services
                         flightFind.PointOfLoading = flightInfo.PointOfLoading;
                         flightFind.PointOfUnloading = flightInfo.PointOfUnloading;
 
-                        // Chuyển đổi thời gian từ chuỗi sang TimeOnly
                         if (!TimeOnly.TryParse(flightInfo.TimeStart, out var timeStart))
                         {
                             throw new ArgumentException("Invalid start time");
@@ -179,8 +176,6 @@ namespace API_Flight_Altar_ThucTap.Services
                         flightFind.DateTime = flightInfo.DateTime;
                         flightFind.PointOfLoading = flightInfo.PointOfLoading;
                         flightFind.PointOfUnloading = flightInfo.PointOfUnloading;
-
-                        // Chuyển đổi thời gian từ chuỗi sang TimeOnly
                         if (!TimeOnly.TryParse(flightInfo.TimeStart, out var timeStart))
                         {
                             throw new ArgumentException("Invalid start time");
@@ -191,8 +186,8 @@ namespace API_Flight_Altar_ThucTap.Services
                             throw new ArgumentException("Invalid end time");
                         }
 
-                        flightFind.TimeStart = timeStart.ToString(); // Chuyển đổi TimeOnly sang string
-                        flightFind.TimeEnd = timeEnd.ToString();     // Chuyển đổi TimeOnly sang string
+                        flightFind.TimeStart = timeStart.ToString();
+                        flightFind.TimeEnd = timeEnd.ToString();
 
                         await _context.SaveChangesAsync();
                         return flightFind;
@@ -248,5 +243,26 @@ namespace API_Flight_Altar_ThucTap.Services
             throw new UnauthorizedAccessException("Vui lòng đăng nhập vào hệ thống.");
         }
 
+        public async Task<IEnumerable<Flight>> GetFlightByName(string name)
+        {
+            var userInfo = GetUserInfoFromClaims();
+            var flightfind = await _context.flights.Where(x => x.FlightNo.Contains(name)).ToListAsync();
+            if(flightfind != null)
+            {
+                return flightfind;
+            }
+            throw new NotImplementedException("No flight found");
+        }
+
+        public async Task<Flight> GetFlightById(int id)
+        {
+            var userInfo = GetUserInfoFromClaims();
+            var flightFind = await _context.flights.FirstOrDefaultAsync(x => x.IdFlight == id);
+            if(flightFind != null)
+            {
+                return flightFind;
+            }
+            throw new NotImplementedException("No flight found");
+        }
     }
 }

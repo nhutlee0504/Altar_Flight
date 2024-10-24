@@ -11,5 +11,6 @@ namespace API_Flight_Altar_ThucTap.Services
         public Task<GroupModel> UpdateGroup(int id, string groupName, string note);
         public Task<GroupModel> DeleteGroup(int id);
         public Task<IEnumerable<GroupModel>> FindGroupByName(string name);
+        public Task<GroupModel> FindMyGroupById(int idGroup);
     }
 }

@@ -21,8 +21,8 @@ namespace API_Flight_Altar_ThucTap.Services
 
         public async Task<Group_Type> AddGroupType(int idGroup, int idType, int idPermission)
         {
-            var user = GetUserInfoFromClaims();
-            if (user.Role == "Admin" || user.Role == "GO")
+            var userInfo = GetUserInfoFromClaims();
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
                 var newGT = new Group_Type
                 {
@@ -39,16 +39,22 @@ namespace API_Flight_Altar_ThucTap.Services
 
         public async Task<Group_Type> DeleteGroupType(int idGT)
         {
-            var user = GetUserInfoFromClaims();
-            if (user.Role == "Admin" || user.Role == "GO")
+            var userInfo = GetUserInfoFromClaims();
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
                 var gtFind = await _context.group_Types.FirstOrDefaultAsync(x => x.IdGT == idGT);
                 if (gtFind != null)
                 {
-                    var typeFind = await _context.typeDocs.FirstOrDefaultAsync(x => x.IdTypeDoc == gtFind.IdType);
-                    if (typeFind.UserId == user.IdUser)
+                    if (userInfo.Role.ToLower().Contains("admin"))
                     {
-                        _context.typeDocs.Remove(typeFind);
+                        _context.group_Types.Remove(gtFind);
+                        await _context.SaveChangesAsync();
+                        return gtFind;
+                    }
+                    var typeFind = await _context.typeDocs.FirstOrDefaultAsync(x => x.IdTypeDoc == gtFind.IdType);
+                    if (typeFind.UserId == userInfo.IdUser)
+                    {
+                        _context.group_Types.Remove(gtFind);
                         await _context.SaveChangesAsync();
                         return gtFind;
                     }
@@ -61,8 +67,8 @@ namespace API_Flight_Altar_ThucTap.Services
 
         public async Task<IEnumerable<Group_Type>> GetAllGroupType()
         {
-            var user = GetUserInfoFromClaims();
-            if (user.Role == "Admin" || user.Role == "GO")
+            var userInfo = GetUserInfoFromClaims();
+            if (userInfo.Role.ToLower().Contains("admin"))
             {
                 var getGU = await _context.group_Types.ToListAsync();
                 if (getGU != null)
@@ -77,8 +83,8 @@ namespace API_Flight_Altar_ThucTap.Services
 
         public async Task<IEnumerable<Group_Type>> GetGroupTypeByIdType(int idType)
         {
-            var user = GetUserInfoFromClaims();
-            if (user.Role == "Admin" || user.Role == "GO")
+            var userInfo = GetUserInfoFromClaims();
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
                 var GtFind = await _context.group_Types.Where(x => x.IdType == idType).ToListAsync();
                 if (GtFind.Count > 0)
@@ -92,14 +98,14 @@ namespace API_Flight_Altar_ThucTap.Services
 
         public async Task<Group_Type> UpdateGroupType(int idGT, int idGroup, int idType, int idPermission)
         {
-            var user = GetUserInfoFromClaims();
-            if (user.Role == "Admin" || user.Role == "GO")
+            var userInfo = GetUserInfoFromClaims();
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
                 var gtFind = await _context.group_Types.FirstOrDefaultAsync(x => x.IdGT == idGT);
                 if (gtFind != null)
                 {
                     var typeFind = await _context.typeDocs.FirstOrDefaultAsync(x => x.IdTypeDoc == idType);
-                    if (typeFind != null && typeFind.UserId == user.IdUser)
+                    if (typeFind != null && typeFind.UserId == userInfo.IdUser)
                     {
                         gtFind.IdGroup = idGroup;
                         gtFind.IdType = idType;

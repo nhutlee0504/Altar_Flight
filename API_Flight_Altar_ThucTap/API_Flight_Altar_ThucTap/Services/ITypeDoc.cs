@@ -10,6 +10,7 @@ namespace API_Flight_Altar_ThucTap.Services
         public Task<TypeDoc> AddTypeDoc(string typeName, string note);
         public Task<TypeDoc> UpdateTypeDoc(int id, string typeName, string note);
         public Task<IEnumerable<TypeDoc>> FindTypeDocByName(string name);
+        public Task<TypeDoc> FindTypeDocById(int idTypeDoc);
         public Task<TypeDoc> DeleteTypeDoc(int id);
     }
 }

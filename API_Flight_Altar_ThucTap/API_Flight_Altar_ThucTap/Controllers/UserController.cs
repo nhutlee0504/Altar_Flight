@@ -79,6 +79,50 @@ namespace API_Flight_Altar.Controllers
             }
         }
 
+        [HttpPut("ChangeMyPassword")]
+        public async Task<IActionResult> ChangeMyPassword(string OldPassword, string NewPassword)
+        {
+            try
+            {
+                var change = await _userService.ChangePassword(OldPassword, NewPassword);
+                return Ok(change);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("ChangePasswordUser")]
+        public async Task<IActionResult> ChangePasswordUser(int idUser, string Password)
+        {
+            try
+            {
+                var change = await _userService.ChangePasswordUser(idUser, Password);
+                return Ok(change);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPut("Permission")]
         public async Task<IActionResult> PermissionUser(int id, string role)//Phân quyền cho các User
         {
@@ -112,6 +156,28 @@ namespace API_Flight_Altar.Controllers
             {
                 var user = await _userService.FindUserByEmail(email);
                 return Ok(user);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("FindUserId")]
+        public async Task<IActionResult> FindUserId(int idUser)
+        {
+            try
+            {
+                var u = await _userService.FindUserById(idUser);
+                return Ok(u);
             }
             catch (UnauthorizedAccessException ex)
             {

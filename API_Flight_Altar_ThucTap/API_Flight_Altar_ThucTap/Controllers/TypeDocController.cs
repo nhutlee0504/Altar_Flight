@@ -62,8 +62,6 @@ namespace API_Flight_Altar_ThucTap.Controllers
             }
         }
 
-
-
         [HttpPost("AddTypeDoc")]
         public async Task<IActionResult> AddTypeDoc(string typeName, string Note)//Thêm loại tài liệu
         {
@@ -92,8 +90,8 @@ namespace API_Flight_Altar_ThucTap.Controllers
            
         }
 
-        [HttpGet("FindType")]
-        public async Task<IActionResult> FindTypeDoc(string name)//Tìm typeDoc theo Id
+        [HttpGet("FindTypeByName")]
+        public async Task<IActionResult> FindTypeByName(string name)//Tìm typeDoc theo Id
         {
             try
             {
@@ -109,6 +107,24 @@ namespace API_Flight_Altar_ThucTap.Controllers
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("FindTypeById")]
+        public async Task<IActionResult> FindTypeById(int idTypeDoc)
+        {
+            try
+            {
+                var type = await _typeDocService.FindTypeDocById(idTypeDoc);
+                return Ok(type);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
             {
                 return BadRequest(ex.Message);
             }

@@ -141,12 +141,34 @@ namespace API_Flight_Altar_ThucTap.Controllers
             }
         }
 
-        [HttpGet("FindGroup")]
-        public async Task<IActionResult> FindGroup(string name)//Tìm group qua tên
+        [HttpGet("FindGroupByName")]
+        public async Task<IActionResult> FindGroupByName(string name)//Tìm group qua tên
         {
             try
             {
                 var group = await _group.FindGroupByName(name);
+                return Ok(group);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("FindGroupById")]
+        public async Task<IActionResult> FindGroupById(int idGroup)//Tìm group qua id
+        {
+            try
+            {
+                var group = await _group.FindMyGroupById(idGroup);
                 return Ok(group);
             }
             catch (UnauthorizedAccessException ex)

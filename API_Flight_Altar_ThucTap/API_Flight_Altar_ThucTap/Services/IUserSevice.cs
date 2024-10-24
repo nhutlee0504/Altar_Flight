@@ -13,6 +13,9 @@ namespace API_Flight_Altar.Services
         public Task<string> LoginUser(UserLoginDto userLoginDto);
         public Task<User> UpdateUser(string name, string phone);
         public Task<IEnumerable<User>> FindUserByEmail(string email);
+        public Task<User> FindUserById(int idUser);
+        public Task<User> ChangePassword(string oldPassword, string newPassword);
+        public Task<User> ChangePasswordUser(int idUser, string newPassword);
         public Task<User> PermissionUser(int idUser, string role);
         public Task<User> LockUser(int id);
         public Task<User> UnlockUser(int id);

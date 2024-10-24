@@ -77,5 +77,96 @@ namespace API_Flight_Altar_ThucTap.Controllers
             }
         }
 
+        [HttpPut("update/{idDocFlight}")]
+        public async Task<IActionResult> UpdateFile(int idDocFlight, IFormFile file)
+        {
+            // Check if the file is valid
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("Please select a file to upload.");
+            }
+
+            try
+            {
+                // Call UpdateDocFlight from the service
+                var updatedDocFlight = await _docFlight.UpdateDocFlight(idDocFlight, file);
+                return Ok(updatedDocFlight); // Return updated document info
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message); // Return error message if any
+            }
+            catch (FileNotFoundException ex)
+            {
+                return NotFound(ex.Message); // Return 404 if file not found
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchDocFlight([FromQuery] string searchTerm)
+        {
+            try
+            {
+                var documents = await _docFlight.SearchDocFlight(searchTerm);
+                return Ok(documents);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("remove/{idDocument}")]
+        public async Task<IActionResult> RemoveDocument(int idDocument)
+        {
+            try
+            {
+                var removedDocFlight = await _docFlight.RemoveFlight(idDocument);
+                return Ok(removedDocFlight);
+            }
+            catch (FileNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("confirm/{idDocument}")]
+        public async Task<IActionResult> ConfirmDocument(int idDocument)
+        {
+            try
+            {
+                var confirmedDoc = await _docFlight.ConfirmDocFlight(idDocument);
+                return Ok(confirmedDoc); // Trả về thông tin tài liệu đã xác nhận
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message); // Trả về 403 nếu không có quyền
+            }
+            catch (FileNotFoundException ex)
+            {
+                return NotFound(ex.Message); // Trả về 404 nếu không tìm thấy tài liệu
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 }

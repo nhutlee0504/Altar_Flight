@@ -54,7 +54,7 @@ namespace API_Flight_Altar_ThucTap.Services
                 {
                     throw new NotImplementedException("No typeDoc found");
                 }
-                if(userInfo.Role == "Admin")
+                if (userInfo.Role == "Admin")
                 {
                     typeFind.Status = "Deleted";
                     var gt = await _context.group_Types.Where(x => x.IdType == typeFind.IdTypeDoc).ToListAsync();
@@ -66,12 +66,28 @@ namespace API_Flight_Altar_ThucTap.Services
                 {
                     throw new UnauthorizedAccessException("You do not have access permission");
                 }
-                if(typeFind.Status == "Deleted")
+                if (typeFind.Status == "Deleted")
                 {
                     throw new UnauthorizedAccessException("The document type has been deleted previously");
                 }
                 typeFind.Status = "Deleted";
                 await _context.SaveChangesAsync();
+                return typeFind;
+            }
+            throw new UnauthorizedAccessException("You do not have access permission");
+        }
+
+        public async Task<TypeDoc> FindTypeDocById(int idTypeDoc)
+        {
+            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
+            {
+                var typeFind = await _context.typeDocs.FirstOrDefaultAsync(x => x.IdTypeDoc == idTypeDoc);
+                if (typeFind == null)
+                {
+                    throw new NotImplementedException("No document type found");
+                }
                 return typeFind;
             }
             throw new UnauthorizedAccessException("You do not have access permission");
@@ -105,7 +121,7 @@ namespace API_Flight_Altar_ThucTap.Services
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
                 var myType = await _context.typeDocs.Where(x => x.UserId == userInfo.IdUser).ToListAsync();
-                if(myType == null)
+                if (myType == null)
                 {
                     throw new NotImplementedException("No document type found");
                 }
@@ -131,7 +147,7 @@ namespace API_Flight_Altar_ThucTap.Services
                 {
                     return typeFind;
                 }
-                return  typeFind.Where(x => x.Status != "Deleted");
+                return typeFind.Where(x => x.Status != "Deleted");
             }
             throw new UnauthorizedAccessException("You do not have access permission");
 
@@ -141,7 +157,7 @@ namespace API_Flight_Altar_ThucTap.Services
         {
             var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
 
-            if (userInfo.Role != "Admin" || userInfo.Role != "GO")
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
                 var typeFind = await _context.typeDocs.FirstOrDefaultAsync(x => x.IdTypeDoc == id);
                 if (typeFind == null)
@@ -163,7 +179,7 @@ namespace API_Flight_Altar_ThucTap.Services
                     await _context.SaveChangesAsync();
                     return typeFind;
                 }
-                if(userInfo.IdUser == typeFind.UserId)
+                if (userInfo.IdUser == typeFind.UserId)
                 {
                     typeFind.TypeName = typeName;
                     typeFind.Note = note;

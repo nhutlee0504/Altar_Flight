@@ -7,6 +7,8 @@ namespace API_Flight_Altar_ThucTap.Services
 	{
 		public Task<IEnumerable<Flight>> GetAllFlight();
 		public Task<IEnumerable<Flight>> GetMyFlight();
+		public Task<IEnumerable<Flight>> GetFlightByName(string name);
+		public Task<Flight> GetFlightById(int id);
 		public Task<Flight> AddFlight(FlightInfo flightInfo);
 		public Task<Flight> UpdateFlight(int idFlight, FlightInfo flightInfo);
 		public Task<Flight> RemoveFlight(int idFlight);

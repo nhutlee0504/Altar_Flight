@@ -129,5 +129,41 @@ namespace API_Flight_Altar_ThucTap.Controllers
             }
         }
 
+        [HttpGet("GetFlightByname")]
+        public async Task<IActionResult> GetFlightByName(string name)
+        {
+            try
+            {
+                var flight = await _flight.GetFlightByName(name);
+                return Ok(flight);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("GetFlightById")]
+        public async Task<IActionResult> GetFlightById(int id)
+        {
+            try
+            {
+                var flight = await _flight.GetFlightById(id);
+                return Ok(flight);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 }
