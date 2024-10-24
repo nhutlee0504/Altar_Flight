@@ -13,15 +13,16 @@ namespace API_Flight_Altar_ThucTap.Model
         public int IdTypeDoc { get; set; }
 
         [Column(TypeName = "varchar(50)"), Required(ErrorMessage = "Vui lòng nhập tên loại tài liệu")]
-        public string TypeName { get; set; }
-        public string Note { get; set; }
-        public string Status { get; set; }
+        public string? TypeName { get; set; }
+        public string? Note { get; set; }
+        public string? Status { get; set; }
         public DateTime CreatedDate { get; set; }
 
         // Khóa ngoại liên kết với User
         [ForeignKey("User")] // Tránh chu kỳ khi serialize
         public int UserId { get; set; }
         public User User { get; set; } // Điều này giúp lấy thông tin người dùng nếu cần
-        public ICollection<Group_Type> group_Types { get; set; }
+        public ICollection<Group_Type>? group_Types { get; set; }
+        public ICollection<DocFlight>? docFlights { get; set; }
     }
 }

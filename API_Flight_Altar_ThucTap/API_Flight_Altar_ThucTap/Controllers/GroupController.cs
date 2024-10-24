@@ -29,6 +29,36 @@ namespace API_Flight_Altar_ThucTap.Controllers
             {
                 return BadRequest(ex.Message);
             }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("GetMyGroup")]
+        public async Task<IActionResult> GetMyGroupAsync()
+        {
+            try
+            {
+                var mygroup = await _group.GetMyGroup();
+                return Ok(mygroup);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("AddGroup")]
@@ -41,6 +71,18 @@ namespace API_Flight_Altar_ThucTap.Controllers
                 return Ok(newGroup);
             }
             catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
@@ -63,6 +105,18 @@ namespace API_Flight_Altar_ThucTap.Controllers
             {
                 return BadRequest(ex.Message);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("DeleteGroup")]
@@ -81,6 +135,10 @@ namespace API_Flight_Altar_ThucTap.Controllers
             {
                 return BadRequest(ex.Message);
             }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet("FindGroup")]
@@ -96,6 +154,10 @@ namespace API_Flight_Altar_ThucTap.Controllers
                 return BadRequest(ex.Message);
             }
             catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }

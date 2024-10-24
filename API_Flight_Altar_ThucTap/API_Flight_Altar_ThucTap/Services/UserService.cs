@@ -29,32 +29,39 @@ namespace API_Flight_Altar.Services
         {
             var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
 
-            if (userInfo.Role != "Admin")
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
-                throw new UnauthorizedAccessException("Chỉ admin mới có quyền");
+                var users = await _context.users.ToListAsync();
+                if (userInfo.Role.ToLower().Contains("admin"))
+                {
+                    if (users == null)
+                    {
+                        throw new NotImplementedException("No user found");
+                    }
+                    return users;
+                }
+                if (users == null)
+                {
+                    throw new NotImplementedException("No user found");
+                }
+                return users.Where(x => x.Status.Contains("Active") && x.Role != "Admin");
             }
+            throw new UnauthorizedAccessException("You do not have access permission");
+		}
 
-            var users = await _context.users.ToListAsync();
-            if(users == null)
-            {
-                throw new NotImplementedException("Không tìm thấy người dùng nào");
-            }
-            return users;
-        }
-
-        public async Task<string> LoginAdmin(UserLoginDto userLoginDto)//Đăng nhập dành cho admin
+		public async Task<string> LoginAdmin(UserLoginDto userLoginDto)//Đăng nhập dành cho admin
         {
             ValidateEmailDomain(userLoginDto.Email); // Kiểm tra email
             var user = await _context.users.FirstOrDefaultAsync(u => u.Email == userLoginDto.Email);
             if (user == null || !VerifyPassword(userLoginDto.Password, user.Password))
             {
-                throw new UnauthorizedAccessException("Email hoặc mật khẩu không đúng.");
+                throw new UnauthorizedAccessException("Incorrect email or password");
             }
 
             // Kiểm tra vai trò
-            if (user.Role != "Admin")
+            if (!user.Role.ToLower().Contains("admin"))
             {
-                throw new UnauthorizedAccessException("Bạn không có quyền truy cập vào tài khoản Admin.");
+                throw new UnauthorizedAccessException("You do not have access permission");
             }
 
             var token = GenerateJwtToken(user);
@@ -68,28 +75,28 @@ namespace API_Flight_Altar.Services
             var user = await _context.users.FirstOrDefaultAsync(u => u.Email == userLoginDto.Email);
             if (user == null || !VerifyPassword(userLoginDto.Password, user.Password))
             {
-                throw new UnauthorizedAccessException("Email hoặc mật khẩu không đúng.");
+                throw new UnauthorizedAccessException("Incorrect email or password.");
             }
             //Kiểm tra khóa tài khoản
             if (user.Status.ToLower().Contains("lock"))
             {
-                throw new UnauthorizedAccessException("Tài khoản đã bị khóa");
+                throw new UnauthorizedAccessException("The account has been locked");
             }
             var token = GenerateJwtToken(user);
 
             return token;
         }
-        public async Task<User> RegisterAdminAsync(UserRegisterDto userRegisterDto)
+
+        public async Task<User> RegisterAdminAsync(UserRegisterDto userRegisterDto)//tạo tài khoản admin
         {
          
-            ValidateEmailDomain(userRegisterDto.Email); // Kiểm tra email
-            ValidatePassword(userRegisterDto.Password); //Kiểm tra mật khẩu
+            ValidateEmailDomain(userRegisterDto.Email);
+            ValidatePassword(userRegisterDto.Password);
             var userTim = await _context.users.FirstOrDefaultAsync(u => u.Email == userRegisterDto.Email);
             if (userTim != null)
             {
-                throw new InvalidOperationException("Email đã được sử dụng.");
+                throw new InvalidOperationException("Email has already been used");
             }
-
             var user = new User
             {
                 Email = userRegisterDto.Email,
@@ -99,7 +106,6 @@ namespace API_Flight_Altar.Services
                 Role = "Admin",
                 Status = "Active"
             };
-
             await _context.users.AddAsync(user);
             await _context.SaveChangesAsync();
 
@@ -108,21 +114,42 @@ namespace API_Flight_Altar.Services
 
         public async Task<User> RegisterAsync(UserRegisterDto userRegisterDto)//Đăng ký/ Tạo tài khoản do Admin là người tạo
         {
-            ValidateEmailDomain(userRegisterDto.Email); // Kiểm tra email
-            ValidatePassword(userRegisterDto.Password); //Kiểm tra mật khẩu
-            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
-
-            if (userInfo.Role != "Admin")
+            ValidateEmailDomain(userRegisterDto.Email);
+            ValidatePassword(userRegisterDto.Password);
+            if (string.IsNullOrWhiteSpace(userRegisterDto.Name))
             {
-                throw new UnauthorizedAccessException("Chỉ admin mới có quyền tạo tài khoản");
+                throw new ArgumentException("Name cannot be empty");
+            }
+            if (string.IsNullOrWhiteSpace(userRegisterDto.Phone))
+            {
+                throw new ArgumentException("Phone cannot be empty");
+            }
+            if (string.IsNullOrWhiteSpace(userRegisterDto.Role))
+            {
+                throw new ArgumentException("Role cannot be empty");
+            }
+            var phoneRegex = new Regex(@"^(?:\+84|0)([3|5|7|8|9]\d{8})$");
+            if (!phoneRegex.IsMatch(userRegisterDto.Phone))
+            {
+                throw new ArgumentException("Phone number must be a valid Vietnamese number");
+            }
+            var validRoles = new[] { "Admin", "Go", "Pilot", "Crew" };
+            if (!validRoles.Contains(userRegisterDto.Role))
+            {
+                throw new ArgumentException("Role must be one of the following: Admin, Go, Pilot, Crew");
+            }
+            var userInfo = GetUserInfoFromClaims();
+
+            if (!userInfo.Role.ToLower().Contains("admin"))
+            {
+                throw new UnauthorizedAccessException("Only admin can create accounts");
             }
             ValidateEmailDomain(userRegisterDto.Email); // Kiểm tra email
             var userTim = await _context.users.FirstOrDefaultAsync(u => u.Email == userRegisterDto.Email);
             if (userTim != null)
             {
-                throw new InvalidOperationException("Email đã được sử dụng.");
+                throw new InvalidOperationException("Email has already been used");
             }
-
             var user = new User
             {
                 Email = userRegisterDto.Email,
@@ -132,7 +159,6 @@ namespace API_Flight_Altar.Services
                 Role = userRegisterDto.Role,
                 Status = "Active"
             };
-
             await _context.users.AddAsync(user);
             await _context.SaveChangesAsync();
 
@@ -141,6 +167,16 @@ namespace API_Flight_Altar.Services
 
         public async Task<User> UpdateUser(string name, string phone)//Cập nhật thông tin tài khoản của người đăng nhập
         {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Name cannot be empty.");
+            }
+
+            var phoneRegex = new Regex(@"^(0[3|5|7|8|9][0-9]{8})$"); // Đầu số: 03, 05, 07, 08, 09, theo sau là 8 chữ số
+            if (!phoneRegex.IsMatch(phone))
+            {
+                throw new ArgumentException("Phone number is not in a valid");
+            }
             var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
             var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == userInfo.IdUser);
             userFind.Name = name;
@@ -149,41 +185,70 @@ namespace API_Flight_Altar.Services
             return userFind;
         }
 
-        public async Task<User> FindUserByEmail(string email)//Tìm kiếm user qua email
+        public async Task<IEnumerable<User>> FindUserByEmail(string email)//Tìm kiếm user qua email
         {
             var userInfo = GetUserInfoFromClaims();
-            if (userInfo.Role != "Admin" || userInfo.Role == "GO")
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
-                throw new UnauthorizedAccessException("Chỉ admin mới có quyền");
+                if (userInfo.Role.ToLower().Contains("admin"))
+                {
+                    var userFind = await _context.users.Where(x => x.Email.Contains(email)).ToListAsync();
+                    if (userFind == null)
+                    {
+                        throw new NotImplementedException("No user found");
+                    }
+                    return userFind;
+                }
+                var userFind2 = await _context.users.Where(x => x.Email.Contains(email) && x.Status.Contains("Active")).ToListAsync();
+                if (userFind2 == null)
+                {
+                    throw new NotImplementedException("No user found");
+                }
+                return userFind2;
             }
-            var userFind = await _context.users.FindAsync(email);
-            if(userFind == null)
-            {
-                throw new NotImplementedException("Không tìm thấy tài khoản người dùng");
-            }
-            return userFind;
+            throw new UnauthorizedAccessException("You do not have access permission");
         }
 
-        public async Task<User> PermissionUser(int idUser, string role)//Phân quyền User
+        public async Task<User> PermissionUser(int idUser, string role) // Phân quyền User
         {
             var userInfo = GetUserInfoFromClaims();
-            if (userInfo.Role != "Admin")
+            if (!userInfo.Role.ToLower().Contains("admin"))
             {
-                throw new UnauthorizedAccessException("Chỉ admin mới có quyền");
+                throw new UnauthorizedAccessException("Only admin has permission.");
             }
+
             var userFind = await _context.users.FindAsync(idUser);
             if (userFind != null)
             {
+                if (userFind.IdUser == userInfo.IdUser)
+                {
+                    throw new UnauthorizedAccessException("You cannot change your own permissions.");
+                }
+
+                if (userFind.Role.ToLower().Contains("admin"))
+                {
+                    throw new UnauthorizedAccessException("You cannot change the role of an admin account");
+                }
+                if (string.IsNullOrWhiteSpace(role))
+                {
+                    throw new ArgumentException("Role cannot be empty.");
+                }
+                // Kiểm tra role phải là một trong các giá trị hợp lệ
+                var validRoles = new[] { "Admin", "Go", "Pilot", "Crew" };
+                if (!validRoles.Contains(role))
+                {
+                    throw new ArgumentException("Role must be one of the following: Admin, Go, Pilot, Crew.");
+                }
+
                 userFind.Role = role;
                 await _context.SaveChangesAsync();
                 return userFind;
             }
-            throw new NotImplementedException("Không tìm thấy người dùng");
+
+            throw new NotImplementedException("User not found.");
         }
 
-
         //Các phương thức ngoài
-
         private string GenerateJwtToken(User user)//Tạo dữ liệu token bao gồm Id,Email,Role
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
@@ -205,7 +270,6 @@ namespace API_Flight_Altar.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
         private string HashPassword(string password)//Băm mật khẩu
         {
             using (var sha256 = SHA256.Create())
@@ -227,7 +291,6 @@ namespace API_Flight_Altar.Services
                 return Convert.ToBase64String(hashedPassword) + ":" + Convert.ToBase64String(salt);
             }
         }
-
         private bool VerifyPassword(string password, string hashedPasswordWithSalt)//Kiểm tra mật khẩu khi đăng nhập
         {
             var parts = hashedPasswordWithSalt.Split(':');
@@ -247,7 +310,7 @@ namespace API_Flight_Altar.Services
         {
             if (!email.EndsWith("@vietjetair.com", StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("Email phải có đuôi '@vietjetair.com'.");
+                throw new InvalidOperationException("Email must end with '@vietjetair.com'");
             }
         }
         private void ValidatePassword(string password)
@@ -255,15 +318,25 @@ namespace API_Flight_Altar.Services
             var regex = new Regex(@"^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,16}$");
             if (!regex.IsMatch(password))
             {
-                throw new InvalidOperationException("Mật khẩu không hợp lệ. Mật khẩu phải chứa ít nhất một chữ cái, một số và một ký tự đặc biệt.");
+                throw new InvalidOperationException("Invalid password. Password must contain at least one letter, one number, and one special character");
             }
         }
-
-        private (int IdUser, string Email, string Role) GetUserInfoFromClaims()//Lấy dữ liệu thông qua token
+        private (int IdUser, string Email, string Role) GetUserInfoFromClaims()
         {
             var userClaim = _httpContextAccessor.HttpContext?.User;
+
             if (userClaim != null && userClaim.Identity.IsAuthenticated)
             {
+                var expClaim = userClaim.FindFirst("exp");
+                if (expClaim != null && long.TryParse(expClaim.Value, out long exp))
+                {
+                    var expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime;
+                    if (expirationTime < DateTime.UtcNow)
+                    {
+                        throw new UnauthorizedAccessException("Token has expired. Please log in again");
+                    }
+                }
+
                 var idClaim = userClaim.FindFirst(ClaimTypes.NameIdentifier);
                 var emailClaim = userClaim.FindFirst(ClaimTypes.Email);
                 var roleClaim = userClaim.FindFirst(ClaimTypes.Role);
@@ -273,51 +346,62 @@ namespace API_Flight_Altar.Services
                     return (int.Parse(idClaim.Value), emailClaim.Value, roleClaim.Value);
                 }
             }
-            throw new UnauthorizedAccessException("Vui lòng đăng nhập vào hệ thống.");
-        }
 
+            throw new UnauthorizedAccessException("Please log in to the system");
+        }
         public async Task<User> LockUser(int id)
         {
             var user = GetUserInfoFromClaims();
             // Kiểm tra vai trò
-            if (user.Role != "Admin")
+            if (!user.Role.ToLower().Contains("admin"))
             {
-                throw new UnauthorizedAccessException("Bạn không có quyền truy cập vào tài khoản Admin.");
+                throw new UnauthorizedAccessException("Only admin has permission");
             }
             var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == id);
             if(userFind != null)
             {
                 if (userFind.Status.ToLower().Contains("lock"))
                 {
-                    throw new InvalidCastException("Tài khoản đã bị khóa trước đó");
+                    throw new InvalidCastException("The account has already been locked");
+                }
+                if(userFind.Role.ToLower().Contains("admin"))
+                {
+                    throw new UnauthorizedAccessException("Cannot lock an admin account");
                 }
                 userFind.Status = "Lock";
                 await _context.SaveChangesAsync();
                 return userFind;
             }
-            throw new NotImplementedException("Không tìm thấy người dùng");
+            throw new NotImplementedException("No user found");
         }
 
         public async Task<User> UnlockUser(int id)
         {
             var user = GetUserInfoFromClaims();
             // Kiểm tra vai trò
-            if (user.Role != "Admin")
+            if (!user.Role.ToLower().Contains("admin"))
             {
-                throw new UnauthorizedAccessException("Bạn không có quyền truy cập vào tài khoản Admin.");
+                throw new UnauthorizedAccessException("Only admin has permission");
             }
             var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == id);
             if (userFind != null)
             {
                 if (userFind.Status.ToLower().Contains("active"))
                 {
-                    throw new InvalidCastException("Tài khoản chưa bị khóa");
+                    throw new InvalidCastException("The account is not locked");
                 }
                 userFind.Status = "Active";
                 await _context.SaveChangesAsync();
                 return userFind;
             }
-            throw new NotImplementedException("Không tìm thấy người dùng");
+            throw new NotImplementedException("No user found");
+        }
+
+        public async Task<User> GetMyInfo()
+        {
+            var userInfo = GetUserInfoFromClaims();
+            var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == userInfo.IdUser);
+            return userFind;
         }
     }
 }

@@ -10,6 +10,6 @@ namespace API_Flight_Altar_ThucTap.Model
         public int idPermission { get; set; }
         [Required, Column(TypeName = "varchar(50)")]
         public string PermissionName { get; set; }
-        public ICollection<Group_Type> group_Types { get; set; }
+        public ICollection<Group_Type>? group_Types { get; set; }
     }
 }

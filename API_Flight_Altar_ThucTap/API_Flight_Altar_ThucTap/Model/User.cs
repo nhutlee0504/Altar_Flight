@@ -17,12 +17,13 @@ namespace API_Flight_Altar.Model
         [Column(TypeName = "varchar(100)"), Required(ErrorMessage = "Vui lòng nhập mật khẩu")]
         public string Password { get; set; }
         public string? Name { get; set; }
-
         public string? Phone { get; set; }
         public string? Status { get; set; }
         public string? Role { get; set; }
-        public ICollection<TypeDoc> typeDocs { get; set; }
-        public ICollection<GroupModel> groups { get; set; }
-        public ICollection<Group_User> group_Users { get; set; }
+        public ICollection<TypeDoc>? typeDocs { get; set; }
+        public ICollection<GroupModel>? groups { get; set; }
+        public ICollection<Group_User>? group_Users { get; set; }
+        public ICollection<Flight>? flights { get; set; }
+        public ICollection<DocFlight>? documents { get; set; }
     }
 }

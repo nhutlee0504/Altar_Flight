@@ -1,7 +1,5 @@
 ﻿using API_Flight_Altar_ThucTap.Dto;
-using API_Flight_Altar_ThucTap.Model;
 using API_Flight_Altar_ThucTap.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,22 +7,21 @@ namespace API_Flight_Altar_ThucTap.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TypeDocController : ControllerBase
+    public class FlightController : ControllerBase
     {
-        private readonly ITypeDoc _typeDocService;
-
-        public TypeDocController(ITypeDoc typeDocService)
+        private IFlight _flight;
+        public FlightController(IFlight flight)
         {
-            _typeDocService = typeDocService;
+            _flight = flight;
         }
 
-        [HttpGet("TypeDoc")]
-        public async Task<IActionResult> GetTypeDocs()//Lấy tất cả loại tài liệu
+        [HttpGet("GetAllFlight")]
+        public async Task<IActionResult> GetAllFlightAsync()
         {
             try
             {
-                return Ok(await _typeDocService.GetTypeDocs());
-
+                var getFlight = await _flight.GetAllFlight();
+                return Ok(getFlight);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -40,13 +37,13 @@ namespace API_Flight_Altar_ThucTap.Controllers
             }
         }
 
-        [HttpGet("GetMyType")]
-        public async Task<IActionResult> GetMyType()
+        [HttpGet("GetMyFlight")]
+        public async Task<IActionResult> GetMyFlight()
         {
             try
             {
-                var myt = await _typeDocService.GetMyTypeDoc();
-                return Ok(myt);
+                var getMyFlight = await _flight.GetMyFlight();
+                return Ok(getMyFlight);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -62,22 +59,15 @@ namespace API_Flight_Altar_ThucTap.Controllers
             }
         }
 
-
-
-        [HttpPost("AddTypeDoc")]
-        public async Task<IActionResult> AddTypeDoc(string typeName, string Note)//Thêm loại tài liệu
+        [HttpPost("AddFlight")]
+        public async Task<IActionResult> AddFlight(FlightInfo flightInfo)
         {
             try
             {
-                var typeDoc = await _typeDocService.AddTypeDoc(typeName, Note);
-                //return CreatedAtAction(nameof(AddTypeDoc), new { id = typeDoc.IdTypeDoc }, typeDoc);
-                return Ok(typeDoc);
+                var addFlight = await _flight.AddFlight(flightInfo);
+                return Ok(addFlight);
             }
             catch (UnauthorizedAccessException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch(NotImplementedException ex)
             {
                 return BadRequest(ex.Message);
             }
@@ -89,60 +79,15 @@ namespace API_Flight_Altar_ThucTap.Controllers
             {
                 return BadRequest(ex.Message);
             }
-           
         }
 
-        [HttpGet("FindType")]
-        public async Task<IActionResult> FindTypeDoc(string name)//Tìm typeDoc theo Id
+        [HttpPut("UpdateFlight")]
+        public async Task<IActionResult> UpdateFlight(int idFlight, FlightInfo flightInfo)
         {
             try
             {
-                var typeDoc = await _typeDocService.FindTypeDocByName(name);
-                return Ok(typeDoc);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (NotImplementedException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTypeDoc(int id, string typeName, string Note)//Cập nhật loại tài liệu
-        {
-            try
-            {
-                var updatedTypeDoc = await _typeDocService.UpdateTypeDoc(id, typeName, Note);
-                return Ok(updatedTypeDoc);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (NotImplementedException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTypeDoc(int id)//Xóa loại tài liệu
-        {
-            try
-            {
-                var typeDoc = await _typeDocService.DeleteTypeDoc(id);
-                return Ok(typeDoc);
+                var UpFlight = await _flight.UpdateFlight(idFlight, flightInfo);
+                return Ok(UpFlight);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -152,12 +97,37 @@ namespace API_Flight_Altar_ThucTap.Controllers
             {
                 return BadRequest(ex.Message);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
 
-  
+        [HttpDelete("DeleteFlight")]
+        public async Task<IActionResult> DeleteFlight(int idFlight)
+        {
+            try
+            {
+                var delFlight = await _flight.RemoveFlight(idFlight);
+                return Ok(delFlight);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotFiniteNumberException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 }

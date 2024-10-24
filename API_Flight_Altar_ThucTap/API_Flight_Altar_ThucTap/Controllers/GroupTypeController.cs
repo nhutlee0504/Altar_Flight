@@ -13,6 +13,23 @@ namespace API_Flight_Altar_ThucTap.Controllers
         {
             this.groupType = groupType;
         }
+        [HttpGet("GetAllGroupType")]
+        public async Task<IActionResult> GetAllGroupType()
+        {
+            try
+            {
+                var getGT = await groupType.GetAllGroupType();
+                return Ok(getGT);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
         [HttpGet("GetGroupType")]
         public async Task<IActionResult> GetGroupType(int idType)
@@ -53,5 +70,46 @@ namespace API_Flight_Altar_ThucTap.Controllers
                 return BadRequest(ex.Message);
             }
         }
-    }
+
+        [HttpDelete("DeleteGroupType")]
+        public async Task<IActionResult> DeleteGroupType(int id)
+        {
+            try
+            {
+                var delgt = await groupType.DeleteGroupType(id);
+                return Ok(delgt);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+		[HttpPut("UpdateGroupType")]
+		public async Task<IActionResult> UpdateGroupType(int idGT, int idGroup, int idType, int idPermission)
+		{
+			try
+			{
+				var updatedGT = await groupType.UpdateGroupType(idGT, idGroup, idType, idPermission);
+				return Ok(updatedGT);
+			}
+			catch (UnauthorizedAccessException ex)
+			{
+				return BadRequest(ex.Message);
+			}
+			catch (NotImplementedException ex)
+			{
+				return BadRequest(ex.Message);
+			}
+			catch (InvalidCastException ex)
+			{
+				return BadRequest(ex.Message);
+			}
+		}
+
+	}
 }

@@ -15,6 +15,8 @@ namespace API_Flight_Altar.Data
         public DbSet<Group_User> group_Users { get; set; }
         public DbSet<Permission> permissions { get; set; }
         public DbSet<Group_Type> group_Types { get; set; }
+        public DbSet<Flight> flights { get; set; }
+        public DbSet<DocFlight> documents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -55,6 +57,30 @@ namespace API_Flight_Altar.Data
                 .HasOne(o => o.Permission)
                 .WithMany(c => c.group_Types)
                 .HasForeignKey(o => o.IdPermission)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Flight>()
+                .HasOne(o => o.User)
+                .WithMany(c => c.flights)
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<DocFlight>()
+                .HasOne(o => o.User)
+                .WithMany(c => c.documents)
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<DocFlight>()
+                .HasOne(o => o.Flight)
+                .WithMany(c => c.documents)
+                .HasForeignKey(o => o.FlightId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<DocFlight>()
+                .HasOne(o => o.TypeDoc)
+                .WithMany(c => c.docFlights)
+                .HasForeignKey(o => o.FlightId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

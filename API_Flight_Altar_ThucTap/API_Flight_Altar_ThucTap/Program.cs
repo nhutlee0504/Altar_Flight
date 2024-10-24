@@ -74,6 +74,8 @@ builder.Services.AddScoped<IGroup, GroupService>();
 builder.Services.AddScoped<IGroupUser, GroupUserService>();
 builder.Services.AddScoped<IPermission, PermissionService>();
 builder.Services.AddScoped<IGroupType, GroupTypeService>();
+builder.Services.AddScoped<IFlight, FlightService>();
+builder.Services.AddScoped<IDocFlight, DocFlightService>();
 
 builder.Services.AddCors(options =>
 {

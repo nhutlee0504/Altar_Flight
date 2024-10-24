@@ -4,6 +4,7 @@ using API_Flight_Altar.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API_Flight_Altar_ThucTap.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241017052635_Dbv4")]
+    partial class Dbv4
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,25 +36,23 @@ namespace API_Flight_Altar_ThucTap.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("DocumentName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<byte[]>("FileContent")
-                        .HasColumnType("varbinary(max)");
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("FlightId")
                         .HasColumnType("int");
 
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Signature")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TypeId")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedTime")
                         .HasColumnType("datetime2");
@@ -60,7 +60,7 @@ namespace API_Flight_Altar_ThucTap.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.Property<double?>("Version")
+                    b.Property<double>("Version")
                         .HasColumnType("float");
 
                     b.HasKey("IdDocument");
@@ -84,24 +84,31 @@ namespace API_Flight_Altar_ThucTap.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("FlightNo")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool?>("IsDelete")
-                        .HasColumnType("bit");
-
                     b.Property<string>("PointOfLoading")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PointOfUnloading")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Signature")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TimeEnd")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TimeStart")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
@@ -177,9 +184,11 @@ namespace API_Flight_Altar_ThucTap.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("GroupName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Note")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
@@ -221,9 +230,11 @@ namespace API_Flight_Altar_ThucTap.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Note")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TypeName")
@@ -281,12 +292,6 @@ namespace API_Flight_Altar_ThucTap.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("API_Flight_Altar_ThucTap.Model.TypeDoc", "TypeDoc")
-                        .WithMany("docFlights")
-                        .HasForeignKey("FlightId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("API_Flight_Altar.Model.User", "User")
                         .WithMany("documents")
                         .HasForeignKey("UserId")
@@ -294,8 +299,6 @@ namespace API_Flight_Altar_ThucTap.Migrations
                         .IsRequired();
 
                     b.Navigation("Flight");
-
-                    b.Navigation("TypeDoc");
 
                     b.Navigation("User");
                 });
@@ -398,8 +401,6 @@ namespace API_Flight_Altar_ThucTap.Migrations
 
             modelBuilder.Entity("API_Flight_Altar_ThucTap.Model.TypeDoc", b =>
                 {
-                    b.Navigation("docFlights");
-
                     b.Navigation("group_Types");
                 });
 
