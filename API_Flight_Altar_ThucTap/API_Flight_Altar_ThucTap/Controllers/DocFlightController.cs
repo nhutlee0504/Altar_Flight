@@ -152,15 +152,15 @@ namespace API_Flight_Altar_ThucTap.Controllers
             try
             {
                 var confirmedDoc = await _docFlight.ConfirmDocFlight(idDocument);
-                return Ok(confirmedDoc); // Trả về thông tin tài liệu đã xác nhận
+                return Ok(confirmedDoc);
             }
             catch (UnauthorizedAccessException ex)
             {
-                return BadRequest(ex.Message); // Trả về 403 nếu không có quyền
+                return BadRequest(ex.Message);
             }
             catch (FileNotFoundException ex)
             {
-                return NotFound(ex.Message); // Trả về 404 nếu không tìm thấy tài liệu
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {

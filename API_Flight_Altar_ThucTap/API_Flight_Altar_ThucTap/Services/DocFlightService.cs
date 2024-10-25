@@ -2,6 +2,7 @@
 using API_Flight_Altar_ThucTap.Dto;
 using API_Flight_Altar_ThucTap.Model;
 using Microsoft.EntityFrameworkCore;
+using System.Net.WebSockets;
 using System.Security.Claims;
 
 namespace API_Flight_Altar_ThucTap.Services
@@ -20,51 +21,60 @@ namespace API_Flight_Altar_ThucTap.Services
         }
         public async Task<DocFlight> AddDocFlight(IFormFile formFile, int Flightid, int Typeid)
         {
-            // Lấy thông tin người dùng từ Claims
             var userInfo = GetUserInfoFromClaims();
+
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
-                // Kiểm tra file có hợp lệ không
                 if (formFile == null || formFile.Length == 0)
                 {
-                    throw new ArgumentException("File không hợp lệ.");
+                    throw new ArgumentException("Invalid file.");
                 }
 
-                // Kiểm tra định dạng file
                 var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
                 var fileExtension = Path.GetExtension(formFile.FileName).ToLower();
 
                 if (!allowedExtensions.Contains(fileExtension))
                 {
-                    throw new ArgumentException("File phải có định dạng DOC, DOCX hoặc PDF.");
+                    throw new ArgumentException("File must be in DOC, DOCX, or PDF format.");
                 }
 
-                // Đọc nội dung file vào mảng byte
+                var typeDoc = await _context.typeDocs.FindAsync(Typeid);
+                if (typeDoc == null)
+                {
+                    throw new ArgumentException("TypeDoc does not exist.");
+                }
+
+                if (typeDoc.Status?.ToLower() == "deleted")
+                {
+                    throw new InvalidOperationException("Cannot add document because the TypeDoc status is 'Deleted'.");
+                }
+
                 using (var memoryStream = new MemoryStream())
                 {
                     await formFile.CopyToAsync(memoryStream);
-                    var fileContent = memoryStream.ToArray(); // Lưu nội dung file
+                    var fileContent = memoryStream.ToArray();
 
                     var newDoc = new DocFlight
                     {
-                        DocumentName = formFile.FileName, // Lấy tên file
-                        FileContent = fileContent, // Lưu nội dung file
+                        DocumentName = formFile.FileName,
+                        FileContent = fileContent,
                         Version = 1.0,
                         CreatedTime = DateTime.UtcNow,
                         UpdatedTime = DateTime.UtcNow,
                         Status = "Uploaded",
                         IsDeleted = false,
                         UserId = userInfo.IdUser,
-                        FlightId = Flightid,// Cập nhật FlightId nếu cần
+                        FlightId = Flightid,
                         TypeId = Typeid,
                     };
 
                     await _context.documents.AddAsync(newDoc);
                     await _context.SaveChangesAsync();
-                    return newDoc; // Trả về đối tượng đã thêm
+                    return newDoc;
                 }
             }
-            throw new UnauthorizedAccessException("You do not have permission");
+
+            throw new UnauthorizedAccessException("You do not have permission.");
         }
         public async Task<DocFlightDto> DownloadDocFlight(int idDocument)
         {
@@ -85,7 +95,7 @@ namespace API_Flight_Altar_ThucTap.Services
                 Status = docFlight.Status
             };
 
-            return docFlightDto; // Trả về đối tượng DTO
+            return docFlightDto;
         }
         public async Task<IEnumerable<DocFlight>> GetAllDocFlight()
         {
@@ -117,7 +127,7 @@ namespace API_Flight_Altar_ThucTap.Services
         {
             var userInfo = GetUserInfoFromClaims();
             var documents = await _context.documents
-            .Where(doc => doc.FlightId == idFlight) // Thêm điều kiện where
+            .Where(doc => doc.FlightId == idFlight)
             .Select(doc => new DocFlight
             {
                 IdDocument = doc.IdDocument,
@@ -229,7 +239,7 @@ namespace API_Flight_Altar_ThucTap.Services
 
             if (existingDocument.Status.ToLower().Contains("confirmed"))
             {
-                throw new InvalidOperationException("Cannot update document because its status is 'Đã xác nhận'.");
+                throw new InvalidOperationException("Cannot update document because its status is Confirmed.");
             }
 
             var userGroups = await _context.group_Users
@@ -351,26 +361,39 @@ namespace API_Flight_Altar_ThucTap.Services
             var userInfo = GetUserInfoFromClaims();
 
             // Kiểm tra quyền truy cập
-            if (!userInfo.Role.ToLower().Contains("admin"))
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
-                throw new UnauthorizedAccessException("You do not have permission to confirm this document.");
+                var docFlight = await _context.documents.FindAsync(idDocument);
+                if (docFlight == null || docFlight.IsDeleted == true)
+                {
+                    throw new FileNotFoundException("Document not found");
+                }
+                if (userInfo.Role.ToLower().Contains("admin"))
+                {
+                    docFlight.Status = "Confirmed";
+                    docFlight.Signature = userInfo.Email;
+                    docFlight.UpdatedTime = DateTime.UtcNow;
+
+                    _context.documents.Update(docFlight);
+                    await _context.SaveChangesAsync();
+
+                    return docFlight;
+                }
+                var flight = await _context.flights.FirstOrDefaultAsync(x => x.IdFlight == docFlight.FlightId);
+                if(userInfo.IdUser == flight.UserId)
+                {
+                    docFlight.Status = "Confirmed";
+                    docFlight.Signature = userInfo.Email;
+                    docFlight.UpdatedTime = DateTime.UtcNow;
+
+                    _context.documents.Update(docFlight);
+                    await _context.SaveChangesAsync();
+
+                    return docFlight;
+                }
+                throw new UnauthorizedAccessException("You do not have permission to confirm this document");
             }
-
-            var docFlight = await _context.documents.FindAsync(idDocument);
-            if (docFlight == null || docFlight.IsDeleted == true)
-            {
-                throw new FileNotFoundException("Document not found.");
-            }
-
-            // Cập nhật trạng thái và chữ ký
-            docFlight.Status = "Confirmed";
-            docFlight.Signature = userInfo.Email; // Hoặc userInfo.Name nếu có thuộc tính này
-            docFlight.UpdatedTime = DateTime.UtcNow;
-
-            _context.documents.Update(docFlight);
-            await _context.SaveChangesAsync();
-
-            return docFlight; // Trả về tài liệu đã được xác nhận
+            throw new UnauthorizedAccessException("You do not have permission to confirm this document");
         }
 
     }
