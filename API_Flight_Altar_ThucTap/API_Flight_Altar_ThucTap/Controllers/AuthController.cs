@@ -111,5 +111,19 @@ namespace API_Flight_Altar_ThucTap.Controllers
             }
         }
 
+        [HttpPost("Logout")]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                await _userSevice.Logout();
+                return Ok(new { Message = "Đăng xuất thành công." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 }

@@ -58,7 +58,7 @@ namespace API_Flight_Altar.Controllers
         }
 
         [HttpPut("UpdateUser")]
-        public async Task<IActionResult> UpdateUser(string name, string phone)//Cập nhật thông tin người dùng
+        public async Task<IActionResult> UpdateUser(string? name, string? phone)//Cập nhật thông tin người dùng
         {
             try
             {
@@ -244,5 +244,54 @@ namespace API_Flight_Altar.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost("ForgotPassword")]
+        public async Task<IActionResult> ForgotPassword(string email)
+        {
+            try
+            {
+                var result = await _userService.ForgotPassword(email);
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPassword(string email, string otp, string newPassword)
+        {
+            try
+            {
+                var user = await _userService.ResetPassword(email, otp, newPassword);
+                return Ok(new { Message = "Mật khẩu đã được thay đổi thành công." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotImplementedException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 }

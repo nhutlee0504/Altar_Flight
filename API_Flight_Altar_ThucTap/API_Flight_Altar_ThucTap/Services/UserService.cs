@@ -10,6 +10,9 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Caching.Memory;
+using API_Flight_Altar_ThucTap.Services;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace API_Flight_Altar.Services
 {
@@ -18,15 +21,20 @@ namespace API_Flight_Altar.Services
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IMemoryCache _cache;
+        private readonly IEmailService _emailService;
 
-        public UserService(ApplicationDbContext context, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
+        private static readonly HashSet<string> _blacklistedTokens = new HashSet<string>();
+        public UserService(ApplicationDbContext context, IConfiguration configuration, IHttpContextAccessor httpContextAccessor, IMemoryCache cache, IEmailService emailService)
         {
             _context = context;
             _configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
+            _cache = cache;
+            _emailService = emailService;
         }
 
-        public async Task<IEnumerable<User>> GetUsers() //Gọi tất cả user
+        public async Task<IEnumerable<User>> GetUsers() //Gọi tất cả người dùng
         {
             var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
 
@@ -70,7 +78,7 @@ namespace API_Flight_Altar.Services
             return token;
         }
 
-        public async Task<string> LoginUser(UserLoginDto userLoginDto)//Đăng nhập dành cho user thường
+        public async Task<string> LoginUser(UserLoginDto userLoginDto)//Đăng nhập dành cho người dùng thường
         {
             ValidateEmailDomain(userLoginDto.Email); // Kiểm tra email
             var user = await _context.users.FirstOrDefaultAsync(u => u.Email == userLoginDto.Email);
@@ -166,7 +174,7 @@ namespace API_Flight_Altar.Services
             return user;
         }
 
-        public async Task<User> UpdateUser(string name, string phone)//Cập nhật thông tin tài khoản của người đăng nhập
+        public async Task<User> UpdateUser(string name, string phone)//Chức năng cập nhật thôn tin người dùng
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -186,7 +194,7 @@ namespace API_Flight_Altar.Services
             return userFind;
         }
 
-        public async Task<IEnumerable<User>> FindUserByEmail(string email)//Tìm kiếm user qua email
+        public async Task<IEnumerable<User>> FindUserByEmail(string email)//Chức năng tìm kiếm người dùng qua email
         {
             var userInfo = GetUserInfoFromClaims();
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
@@ -209,7 +217,7 @@ namespace API_Flight_Altar.Services
             throw new UnauthorizedAccessException("You do not have access permission");
         }
 
-        public async Task<User> PermissionUser(int idUser, string role) // Phân quyền User
+        public async Task<User> PermissionUser(int idUser, string role) // Phân quyền người dùng
         {
             var userInfo = GetUserInfoFromClaims();
             if (!userInfo.Role.ToLower().Contains("admin"))
@@ -248,7 +256,7 @@ namespace API_Flight_Altar.Services
             throw new NotImplementedException("User not found.");
         }
 
-        public async Task<User> LockUser(int id)
+        public async Task<User> LockUser(int id)//Chức năng khóa tài khoản
         {
             var user = GetUserInfoFromClaims();
             // Kiểm tra vai trò
@@ -274,7 +282,7 @@ namespace API_Flight_Altar.Services
             throw new NotImplementedException("No user found");
         }
 
-        public async Task<User> UnlockUser(int id)
+        public async Task<User> UnlockUser(int id)//Chức năng mở khóa tài khoản
         {
             var user = GetUserInfoFromClaims();
             // Kiểm tra vai trò
@@ -296,14 +304,14 @@ namespace API_Flight_Altar.Services
             throw new NotImplementedException("No user found");
         }
 
-        public async Task<User> GetMyInfo()
+        public async Task<User> GetMyInfo()//Chức năng lấy thông tin của bản thân người dùng
         {
             var userInfo = GetUserInfoFromClaims();
             var userFind = await _context.users.FirstOrDefaultAsync(x => x.IdUser == userInfo.IdUser);
             return userFind;
         }
 
-        public async Task<User> FindUserById(int idUser)
+        public async Task<User> FindUserById(int idUser) //Tìm kiếm người dùng thông qua Id
         {
             var userInfo = GetUserInfoFromClaims();
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
@@ -318,7 +326,7 @@ namespace API_Flight_Altar.Services
             throw new UnauthorizedAccessException("You do not have access permission");
         }
 
-        public async Task<User> ChangePassword(string oldPassword, string newPassword)
+        public async Task<User> ChangePassword(string oldPassword, string newPassword)//Chức năng thay đổi mật khẩu người dùng đang đăng nhập
         {
             var userInfo = GetUserInfoFromClaims();
             var user = await _context.users.FirstOrDefaultAsync(u => u.IdUser == userInfo.IdUser);
@@ -339,7 +347,7 @@ namespace API_Flight_Altar.Services
             return user;
         }
 
-        public async Task<User> ChangePasswordUser(int idUser, string newPassword)
+        public async Task<User> ChangePasswordUser(int idUser, string newPassword)//Chức năng thay đổi mật khảu của người dùng dành cho Admin
         {
             var userInfo = GetUserInfoFromClaims();
 
@@ -359,6 +367,53 @@ namespace API_Flight_Altar.Services
             await _context.SaveChangesAsync();
 
             return user;
+        }
+        public async Task<string> ForgotPassword(string email) //Chức năng quên mật khẩu
+        {
+            ValidateEmailDomain(email);
+            var user = await _context.users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+            {
+                throw new InvalidOperationException("Email does not exist.");
+            }
+
+            var otp = new Random().Next(100000, 999999).ToString();
+            _cache.Set(email, otp, TimeSpan.FromMinutes(5));
+
+            await _emailService.SendEmailAsync(email, "Your OTP Code", $"Your OTP code: {otp}. It is valid for 5 minutes.");
+
+            return otp;
+        }
+        public async Task<User> ResetPassword(string email, string otp, string newPassword) //Chức năng đặt lại mật khẩu
+        {
+            var user = await _context.users.FirstOrDefaultAsync(x => x.Email == email);
+            if (user == null)
+            {
+                throw new ArgumentException("Email does not exist.");
+            }
+
+            if (!_cache.TryGetValue(email, out string cachedOtp))
+            {
+                throw new ArgumentException("OTP has expired or is invalid.");
+            }
+
+            if (cachedOtp != otp)
+            {
+                throw new ArgumentException("Incorrect OTP.");
+            }
+
+            ValidatePassword(newPassword);
+            user.Password = HashPassword(newPassword);
+            _context.users.Update(user);
+            await _context.SaveChangesAsync();
+            _cache.Remove(email);
+
+            return user;
+        }
+        public async Task Logout() //Chức năng đăng xuất tránh dùng lại token cũ
+        {
+            var token = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            _blacklistedTokens.Add(token);
         }
 
         //Các phương thức ngoài
@@ -387,20 +442,16 @@ namespace API_Flight_Altar.Services
         {
             using (var sha256 = SHA256.Create())
             {
-                // Tạo muối ngẫu nhiên
                 byte[] salt = new byte[16];
                 using (var rng = RandomNumberGenerator.Create())
                 {
                     rng.GetBytes(salt);
                 }
 
-                // Kết hợp mật khẩu và muối
                 var passwordWithSalt = Encoding.UTF8.GetBytes(password).Concat(salt).ToArray();
 
-                // Băm mật khẩu
                 var hashedPassword = sha256.ComputeHash(passwordWithSalt);
 
-                // Trả về mật khẩu băm và muối
                 return Convert.ToBase64String(hashedPassword) + ":" + Convert.ToBase64String(salt);
             }
         }
@@ -419,14 +470,14 @@ namespace API_Flight_Altar.Services
                 return hashedPassword.SequenceEqual(computedHash);
             }
         }
-        private void ValidateEmailDomain(string email)
+        private void ValidateEmailDomain(string email)//Kiểm tra Email khi đăng nhập
         {
             if (!email.EndsWith("@vietjetair.com", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("Email must end with '@vietjetair.com'");
             }
         }
-        private void ValidatePassword(string password)
+        private void ValidatePassword(string password)//Kiểm tra mật khẩu khi đăng nhập
         {
             var regex = new Regex(@"^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,16}$");
             if (!regex.IsMatch(password))
@@ -434,35 +485,32 @@ namespace API_Flight_Altar.Services
                 throw new InvalidOperationException("Invalid password. Password must contain at least one letter, one number, and one special character");
             }
         }
-        private (int IdUser, string Email, string Role) GetUserInfoFromClaims()
+        private (int IdUser, string Email, string Role) GetUserInfoFromClaims()//Lấy dữ liệu qua token
         {
             var userClaim = _httpContextAccessor.HttpContext?.User;
 
-            if (userClaim != null && userClaim.Identity.IsAuthenticated)
+            if (userClaim == null || !userClaim.Identity.IsAuthenticated)
             {
-                var expClaim = userClaim.FindFirst("exp");
-                if (expClaim != null && long.TryParse(expClaim.Value, out long exp))
-                {
-                    var expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime;
-                    if (expirationTime < DateTime.UtcNow)
-                    {
-                        throw new UnauthorizedAccessException("Token has expired. Please log in again");
-                    }
-                }
-
-                var idClaim = userClaim.FindFirst(ClaimTypes.NameIdentifier);
-                var emailClaim = userClaim.FindFirst(ClaimTypes.Email);
-                var roleClaim = userClaim.FindFirst(ClaimTypes.Role);
-
-                if (idClaim != null && emailClaim != null && roleClaim != null)
-                {
-                    return (int.Parse(idClaim.Value), emailClaim.Value, roleClaim.Value);
-                }
+                throw new UnauthorizedAccessException("Please log in to the system");
             }
 
-            throw new UnauthorizedAccessException("Please log in to the system");
-        }
+            var token = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            if (_blacklistedTokens.Contains(token))
+            {
+                throw new UnauthorizedAccessException("Token has been invalidated.");
+            }
 
+            var idClaim = userClaim.FindFirst(ClaimTypes.NameIdentifier);
+            var emailClaim = userClaim.FindFirst(ClaimTypes.Email);
+            var roleClaim = userClaim.FindFirst(ClaimTypes.Role);
+
+            if (idClaim == null || emailClaim == null || roleClaim == null)
+            {
+                throw new InvalidOperationException("User claims are missing.");
+            }
+
+            return (int.Parse(idClaim.Value), emailClaim.Value, roleClaim.Value);
+        }
 
     }
 }

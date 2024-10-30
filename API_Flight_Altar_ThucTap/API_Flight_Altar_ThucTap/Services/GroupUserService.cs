@@ -10,14 +10,41 @@ namespace API_Flight_Altar_ThucTap.Services
 	{
 		private readonly ApplicationDbContext _context;
 		private readonly IHttpContextAccessor _httpContextAccessor;
-		public GroupUserService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
+        private static readonly HashSet<string> _blacklistedTokens = new HashSet<string>();
+        public GroupUserService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
 		{
 			_context = context;
 			_httpContextAccessor = httpContextAccessor;
 		}
-		public async Task<Group_User> AddGroupUser(int GroupID, int UserID)//Thêm người dùng vào nhóm
+
+        public async Task<IEnumerable<Group_User>> GetAllGroupUser()// lấy tất cả danh sách group
+        {
+            var userInfo = GetUserInfoFromClaims();
+            if (userInfo.Role.ToLower().Contains("admin"))
+            {
+                var getGU = await _context.group_Users.ToListAsync();
+                if (getGU != null)
+                {
+                    return getGU;
+                }
+                throw new NotImplementedException("No user groups found");
+            }
+
+            throw new UnauthorizedAccessException("You do not have permission to perform this action");
+        }
+        public async Task<IEnumerable<Group_User>> GetGroupUserById(int id)//Lấy danh sách người dùng có trong group chỉ định
+        {
+            var userInfo = GetUserInfoFromClaims();
+            var guFind = await _context.group_Users.Where(x => x.GroupID == id).ToListAsync();
+            if (guFind != null)
+            {
+                return guFind;
+            }
+            throw new NotImplementedException("No user groups found");
+        }
+        public async Task<Group_User> AddGroupUser(int GroupID, int UserID)//Thêm người dùng vào nhóm
 		{
-			var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+			var userInfo = GetUserInfoFromClaims();
 
 			if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
 			{
@@ -47,12 +74,9 @@ namespace API_Flight_Altar_ThucTap.Services
 			}
 			throw new UnauthorizedAccessException("You do not have permission to perform this action");
 		}
-
 		public async Task<Group_User> DeleteGroupUser(int id) // Xóa người dùng khỏi nhóm chỉ định
 		{
-			var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
-
-			// Check if the user is Admin or GO
+			var userInfo = GetUserInfoFromClaims();
 			if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
 			{
 				var groupuserFind = await _context.group_Users.FirstOrDefaultAsync(x => x.IdGU == id);
@@ -78,61 +102,32 @@ namespace API_Flight_Altar_ThucTap.Services
 			throw new UnauthorizedAccessException("You do not have permission to perform this action");
 		}
 
-		public async Task<IEnumerable<Group_User>> GetAllGroupUser()// lấy tất cả danh sách group
-		{
-			var userInfo = GetUserInfoFromClaims();
-			if(userInfo.Role.ToLower().Contains("admin"))
-			{
-				var getGU = await _context.group_Users.ToListAsync();
-				if(getGU != null)
-				{
-					return getGU;
-				}
-				throw new NotImplementedException("No user groups found");
-			}
-
-			throw new UnauthorizedAccessException("You do not have permission to perform this action");
-		}
-
-		public async Task<IEnumerable<Group_User>> GetGroupUserById(int id)//Lấy danh sách người dùng có trong group chỉ định
-		{
-			var userInfo = GetUserInfoFromClaims();
-			var guFind = await _context.group_Users.Where(x => x.GroupID == id).ToListAsync();
-			if(guFind != null)
-			{
-                return guFind;
-            }
-			throw new NotImplementedException("No user groups found");
-        }
-
         //phương thức ngoài
-        private (int IdUser, string Email, string Role) GetUserInfoFromClaims()
+        private (int IdUser, string Email, string Role) GetUserInfoFromClaims()//Lấy thông tin qua token
         {
             var userClaim = _httpContextAccessor.HttpContext?.User;
 
-            if (userClaim != null && userClaim.Identity.IsAuthenticated)
+            if (userClaim == null || !userClaim.Identity.IsAuthenticated)
             {
-                var expClaim = userClaim.FindFirst("exp");
-                if (expClaim != null && long.TryParse(expClaim.Value, out long exp))
-                {
-                    var expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime;
-                    if (expirationTime < DateTime.UtcNow)
-                    {
-                        throw new UnauthorizedAccessException("Token has expired. Please log in again");
-                    }
-                }
-
-                var idClaim = userClaim.FindFirst(ClaimTypes.NameIdentifier);
-                var emailClaim = userClaim.FindFirst(ClaimTypes.Email);
-                var roleClaim = userClaim.FindFirst(ClaimTypes.Role);
-
-                if (idClaim != null && emailClaim != null && roleClaim != null)
-                {
-                    return (int.Parse(idClaim.Value), emailClaim.Value, roleClaim.Value);
-                }
+                throw new UnauthorizedAccessException("Please log in to the system");
             }
 
-            throw new UnauthorizedAccessException("Please log in to the system");
+            var token = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            if (_blacklistedTokens.Contains(token))
+            {
+                throw new UnauthorizedAccessException("Token has been invalidated.");
+            }
+
+            var idClaim = userClaim.FindFirst(ClaimTypes.NameIdentifier);
+            var emailClaim = userClaim.FindFirst(ClaimTypes.Email);
+            var roleClaim = userClaim.FindFirst(ClaimTypes.Role);
+
+            if (idClaim == null || emailClaim == null || roleClaim == null)
+            {
+                throw new InvalidOperationException("User claims are missing.");
+            }
+
+            return (int.Parse(idClaim.Value), emailClaim.Value, roleClaim.Value);
         }
     }
 }

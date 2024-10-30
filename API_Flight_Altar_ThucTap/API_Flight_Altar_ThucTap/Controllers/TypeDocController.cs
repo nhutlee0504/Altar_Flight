@@ -63,7 +63,7 @@ namespace API_Flight_Altar_ThucTap.Controllers
         }
 
         [HttpPost("AddTypeDoc")]
-        public async Task<IActionResult> AddTypeDoc(string typeName, string Note)//Thêm loại tài liệu
+        public async Task<IActionResult> AddTypeDoc(string typeName, string? Note)//Thêm loại tài liệu
         {
             try
             {
@@ -131,7 +131,7 @@ namespace API_Flight_Altar_ThucTap.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTypeDoc(int id, string typeName, string Note)//Cập nhật loại tài liệu
+        public async Task<IActionResult> UpdateTypeDoc(int id, string typeName, string? Note)//Cập nhật loại tài liệu
         {
             try
             {

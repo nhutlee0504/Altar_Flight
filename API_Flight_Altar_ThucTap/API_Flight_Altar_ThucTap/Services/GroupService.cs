@@ -11,26 +11,51 @@ namespace API_Flight_Altar_ThucTap.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private static readonly HashSet<string> _blacklistedTokens = new HashSet<string>();
         public GroupService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<GroupModel> CreateGroup(string groupName, string note)//Tạo group
+        public async Task<IEnumerable<GroupModel>> GetGroups()//Lấy danh sách nhóm người dùng
         {
-            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+            var userInfo = GetUserInfoFromClaims();
+
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
+            {
+                var gtgroup = await _context.groups.ToListAsync();
+                if (gtgroup != null)
+                {
+                    return gtgroup;
+                }
+                throw new NotImplementedException("No group found");
+            }
+            throw new UnauthorizedAccessException("You do not have access permission");
+        }
+        public async Task<IEnumerable<GroupModel>> GetMyGroup() //Lấy danh sách nhóm do người dùng tạo
+        {
+            var userInfo = GetUserInfoFromClaims();
+            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
+            {
+                var groupFind = await _context.groups.Where(x => x.UserId == userInfo.IdUser).ToListAsync();
+                if (groupFind != null)
+                {
+                    return groupFind;
+                }
+                throw new NotImplementedException("No group found");
+            }
+            throw new UnauthorizedAccessException("You do not have access permission");
+        }
+        public async Task<GroupModel> CreateGroup(string groupName, string note)//Tạo nhóm
+        {
+            var userInfo = GetUserInfoFromClaims();
 
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
                 if (string.IsNullOrWhiteSpace(groupName))
                 {
                     throw new ArgumentException("Group name cannot be empty.");
-                }
-                var findGroup = await _context.groups.FirstOrDefaultAsync(x => x.GroupName.ToLower().Contains(groupName));
-                if (findGroup != null) 
-                {
-                    throw new InvalidOperationException("Group name already exists");
                 }
                 var newGr = new GroupModel
                 {
@@ -46,10 +71,9 @@ namespace API_Flight_Altar_ThucTap.Services
             }
             throw new UnauthorizedAccessException("You do not have access permission");
         }
-
-        public async Task<GroupModel> DeleteGroup(int id)//Xóa group
+        public async Task<GroupModel> DeleteGroup(int id)//Xóa nhóm
         {
-            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+            var userInfo = GetUserInfoFromClaims();
 
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
@@ -74,10 +98,9 @@ namespace API_Flight_Altar_ThucTap.Services
             }
             throw new UnauthorizedAccessException("You do not have access permission");
         }
-
-        public async Task<IEnumerable<GroupModel>> FindGroupByName(string name)//Tìm group theo tên
+        public async Task<IEnumerable<GroupModel>> FindGroupByName(string name)//Tìm nhóm theo tên
         {
-            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+            var userInfo = GetUserInfoFromClaims();
 
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
@@ -90,10 +113,9 @@ namespace API_Flight_Altar_ThucTap.Services
             }
             throw new UnauthorizedAccessException("You do not have access permission");
         }
-
-        public async Task<GroupModel> FindMyGroupById(int idGroup)
+        public async Task<GroupModel> FindMyGroupById(int idGroup)//Tìm nhóm theo Id của Group
         {
-            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+            var userInfo = GetUserInfoFromClaims();
 
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
@@ -106,50 +128,13 @@ namespace API_Flight_Altar_ThucTap.Services
             }
             throw new UnauthorizedAccessException("You do not have access permission");
         }
-
-        public async Task<IEnumerable<GroupModel>> GetGroups()//Lấy danh sách group
-        {
-            var userInfo = GetUserInfoFromClaims();
-
-            if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
-            {
-                var gtgroup = await _context.groups.ToListAsync();
-                if(gtgroup != null)
-                {
-                    return gtgroup;
-                }
-                throw new NotImplementedException("No group found");
-            }
-            throw new UnauthorizedAccessException("You do not have access permission");
-        }
-
-        public async Task<IEnumerable<GroupModel>> GetMyGroup() //Lấy nhóm của mình
-        {
-            var userInfo = GetUserInfoFromClaims();
-            if(userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
-            {
-                var groupFind = await _context.groups.Where(x => x.UserId == userInfo.IdUser).ToListAsync();
-                if(groupFind != null)
-                {
-                    return groupFind;
-                }
-                throw new NotImplementedException("No group found");
-            }
-            throw new UnauthorizedAccessException("You do not have access permission");
-        }
-
-        public async Task<GroupModel> UpdateGroup(int id, string groupName, string note)//Cập nhật group
+        public async Task<GroupModel> UpdateGroup(int id, string groupName, string note)//Cập nhật nhóm
         {
             if (string.IsNullOrWhiteSpace(groupName))
             {
                 throw new ArgumentException("Group name cannot be empty.");
             }
-            var findGroup = await _context.groups.FirstOrDefaultAsync(x => x.GroupName.ToLower().Contains(groupName));
-            if (findGroup != null)
-            {
-                throw new InvalidOperationException("Group name already exists");
-            }
-            var userInfo = GetUserInfoFromClaims(); // Lấy thông tin người dùng
+            var userInfo = GetUserInfoFromClaims();
 
             if (userInfo.Role.ToLower().Contains("admin") || userInfo.Role.ToLower().Contains("go"))
             {
@@ -174,38 +159,35 @@ namespace API_Flight_Altar_ThucTap.Services
                 await _context.SaveChangesAsync();
                 return groupFind;
             }
-            throw new UnauthorizedAccessException("Bạn không có quyền thực hiện chức năng.");
+            throw new UnauthorizedAccessException("You do not have access permission");
         }
 
         //Phương thức ngoài
-
         private (int IdUser, string Email, string Role) GetUserInfoFromClaims()
         {
             var userClaim = _httpContextAccessor.HttpContext?.User;
 
-            if (userClaim != null && userClaim.Identity.IsAuthenticated)
+            if (userClaim == null || !userClaim.Identity.IsAuthenticated)
             {
-                var expClaim = userClaim.FindFirst("exp");
-                if (expClaim != null && long.TryParse(expClaim.Value, out long exp))
-                {
-                    var expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime;
-                    if (expirationTime < DateTime.UtcNow)
-                    {
-                        throw new UnauthorizedAccessException("Token has expired. Please log in again");
-                    }
-                }
-
-                var idClaim = userClaim.FindFirst(ClaimTypes.NameIdentifier);
-                var emailClaim = userClaim.FindFirst(ClaimTypes.Email);
-                var roleClaim = userClaim.FindFirst(ClaimTypes.Role);
-
-                if (idClaim != null && emailClaim != null && roleClaim != null)
-                {
-                    return (int.Parse(idClaim.Value), emailClaim.Value, roleClaim.Value);
-                }
+                throw new UnauthorizedAccessException("Please log in to the system");
             }
 
-            throw new UnauthorizedAccessException("Please log in to the system");
+            var token = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            if (_blacklistedTokens.Contains(token))
+            {
+                throw new UnauthorizedAccessException("Token has been invalidated.");
+            }
+
+            var idClaim = userClaim.FindFirst(ClaimTypes.NameIdentifier);
+            var emailClaim = userClaim.FindFirst(ClaimTypes.Email);
+            var roleClaim = userClaim.FindFirst(ClaimTypes.Role);
+
+            if (idClaim == null || emailClaim == null || roleClaim == null)
+            {
+                throw new InvalidOperationException("User claims are missing.");
+            }
+
+            return (int.Parse(idClaim.Value), emailClaim.Value, roleClaim.Value);
         }
     }
 }

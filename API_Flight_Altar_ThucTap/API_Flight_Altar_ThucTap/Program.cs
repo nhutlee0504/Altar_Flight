@@ -67,6 +67,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
  options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
+
 
 builder.Services.AddScoped<IUserSevice, UserService>();
 builder.Services.AddScoped<ITypeDoc, TypeDocService>();
@@ -76,6 +78,8 @@ builder.Services.AddScoped<IPermission, PermissionService>();
 builder.Services.AddScoped<IGroupType, GroupTypeService>();
 builder.Services.AddScoped<IFlight, FlightService>();
 builder.Services.AddScoped<IDocFlight, DocFlightService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 
 builder.Services.AddCors(options =>
 {

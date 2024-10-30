@@ -62,7 +62,7 @@ namespace API_Flight_Altar_ThucTap.Controllers
         }
 
         [HttpPost("AddGroup")]
-        public async Task<IActionResult> AddGroup(string groupName, string note)//Thêm group
+        public async Task<IActionResult> AddGroup(string groupName, string? note)//Thêm group
         {
             try
             {
@@ -90,7 +90,7 @@ namespace API_Flight_Altar_ThucTap.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateGroup(int id, string groupName, string note)//cập nhật group
+        public async Task<IActionResult> UpdateGroup(int id, string groupName, string? note)//cập nhật group
         {
             try
             {
